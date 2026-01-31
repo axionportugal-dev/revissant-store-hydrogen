@@ -1,5 +1,6 @@
 import {Suspense} from 'react';
 import {Await, NavLink, useAsyncValue} from 'react-router';
+import {RevissantHeader} from '~/components/revissant/layout/RevissantHeader';
 import {
   type CartViewPayload,
   useAnalytics,
@@ -17,7 +18,11 @@ interface HeaderProps {
 
 type Viewport = 'desktop' | 'mobile';
 
-export function Header({
+/**
+ * Este é o header "original" do Hydrogen.
+ * Mantemos tudo igual aqui, para servir como fallback (não muda o visual ainda).
+ */
+function HydrogenHeader({
   header,
   isLoggedIn,
   cart,
@@ -37,6 +42,17 @@ export function Header({
       />
       <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
     </header>
+  );
+}
+
+/**
+ * Export oficial do Hydrogen.
+ * Agora delega para o RevissantHeader, mas com fallback no HydrogenHeader.
+ * Isto prepara o terreno para a branch feature/layout-shell.
+ */
+export function Header(props: HeaderProps) {
+  return (
+    <RevissantHeader {...props} fallback={<HydrogenHeader {...props} />} />
   );
 }
 
@@ -77,6 +93,7 @@ export function HeaderMenu({
           item.url.includes(primaryDomainUrl)
             ? new URL(item.url).pathname
             : item.url;
+
         return (
           <NavLink
             className="header-menu-item"
