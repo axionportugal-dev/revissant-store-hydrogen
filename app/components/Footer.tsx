@@ -1,5 +1,6 @@
 import {Suspense} from 'react';
 import {Await, NavLink} from 'react-router';
+import {RevissantFooter} from '~/components/revissant/layout/RevissantFooter';
 import type {FooterQuery, HeaderQuery} from 'storefrontapi.generated';
 
 interface FooterProps {
@@ -8,7 +9,11 @@ interface FooterProps {
   publicStoreDomain: string;
 }
 
-export function Footer({
+/**
+ * Este é o footer "original" do Hydrogen.
+ * Mantemos como fallback para não mudar nada visualmente nesta foundation.
+ */
+function HydrogenFooter({
   footer: footerPromise,
   header,
   publicStoreDomain,
@@ -32,6 +37,16 @@ export function Footer({
   );
 }
 
+/**
+ * Export oficial do Hydrogen.
+ * Delegamos para RevissantFooter com fallback no HydrogenFooter.
+ */
+export function Footer(props: FooterProps) {
+  return (
+    <RevissantFooter {...props} fallback={<HydrogenFooter {...props} />} />
+  );
+}
+
 function FooterMenu({
   menu,
   primaryDomainUrl,
@@ -45,6 +60,7 @@ function FooterMenu({
     <nav className="footer-menu" role="navigation">
       {(menu || FALLBACK_FOOTER_MENU).items.map((item) => {
         if (!item.url) return null;
+
         // if the url is internal, we strip the domain
         const url =
           item.url.includes('myshopify.com') ||
@@ -52,7 +68,9 @@ function FooterMenu({
           item.url.includes(primaryDomainUrl)
             ? new URL(item.url).pathname
             : item.url;
+
         const isExternal = !url.startsWith('/');
+
         return isExternal ? (
           <a href={url} key={item.id} rel="noopener noreferrer" target="_blank">
             {item.title}
