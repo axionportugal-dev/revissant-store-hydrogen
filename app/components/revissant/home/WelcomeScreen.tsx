@@ -1,11 +1,24 @@
 import {useEffect, useState} from 'react';
+import {useLockBodyScroll} from '~/components/revissant/hooks/useLockBodyScroll';
 
 type WelcomeScreenProps = {
   onFinished: () => void;
 };
 
+/**
+ * WelcomeScreen (REVISSANT) - versão com LOGO WHITE.
+ * - Mostra o overlay
+ * - Aguarda 2.5s
+ * - Faz fade-out 1s
+ * - Chama onFinished()
+ *
+ * SSR-safe: window só dentro de useEffect.
+ */
 export function WelcomeScreen({onFinished}: WelcomeScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
+
+  // Bloquear scroll enquanto estiver visível
+  useLockBodyScroll(isVisible);
 
   useEffect(() => {
     let finishTimer: number | undefined;
@@ -13,7 +26,7 @@ export function WelcomeScreen({onFinished}: WelcomeScreenProps) {
     const timer = window.setTimeout(() => {
       setIsVisible(false);
 
-      // deixa a transição de opacity acontecer (1s) antes de “finalizar”
+      // esperar o fade-out (1s) antes de finalizar
       finishTimer = window.setTimeout(() => {
         onFinished();
       }, 1000);
@@ -25,55 +38,87 @@ export function WelcomeScreen({onFinished}: WelcomeScreenProps) {
     };
   }, [onFinished]);
 
-  // lock scroll enquanto o overlay está visível
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isVisible]);
-
   return (
     <div
       className={[
-        'fixed inset-0 z-[200] flex flex-col items-center justify-center',
-        'bg-[#0F2445] text-white',
+        'fixed inset-0 z-[200] flex items-center justify-center',
         'transition-opacity duration-1000 ease-in-out',
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       ].join(' ')}
+      style={{backgroundColor: '#10203B'}}
     >
-      <div className="text-center">
-        <h1
-          className="text-5xl font-serif tracking-widest mb-4 uppercase animate-fade-in"
-          style={{fontFamily: "'Times New Roman', serif"}}
-        >
-          REVISSANT
-        </h1>
+      <div className="flex flex-col items-center justify-center text-center">
+        {/* LOGO WHITE */}
+        <img
+          src="/logowhite.png"
+          alt="REVISSANT"
+          className="logo-anim w-[340px] sm:w-[420px] md:w-[520px] h-auto select-none"
+          draggable={false}
+        />
 
-        <div className="flex justify-center mb-4">
-          <div className="h-[1px] bg-white animate-[width_1.5s_ease-out_forwards_0.5s]" />
+        {/* Subtítulo + linha alinhada (como na print) */}
+        <div className="subtitle-wrap -mt-20
+        ">
+          <div className="line-anim" />
+          <p className="subtitle-anim text-[11px] sm:text-[12px] text-white/70 tracking-[0.45em] uppercase">
+            Welcome to the new standard
+          </p>
         </div>
-
-        <p className="text-xl font-light tracking-wide opacity-0 animate-[fadeIn_1s_ease-out_forwards_1s]">
-          Welcome to the new standard of luxury living
-        </p>
       </div>
 
+      {/* CSS local para animar sem mexer em estilos globais */}
       <style>{`
-        @keyframes width {
-          from { width: 0; }
-          to { width: 100px; }
+        .logo-anim {
+          opacity: 0;
+          transform: translateY(6px);
+          animation: logoIn 900ms ease-out forwards;
         }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+
+        .subtitle-wrap{
+          position: relative;
+          display: inline-block; /* faz o wrap ter a largura do texto */
+          text-align: center;
         }
-        .animate-fade-in {
-          animation: fadeIn 1s ease-out forwards;
+
+        .line-anim{
+          position: absolute;
+          top: -15px;            /* distância acima do texto (ajusta fino) */
+          left: 50%;
+          height: 1px;
+          background: rgba(255,255,255,0.6);
+
+          /* largura semelhante à print (um pouco menor que o texto) */
+          width: 68%;
+          max-width: 220px;
+          min-width: 140px;
+
+          /* animação */
+          transform-origin: center;
+          opacity: 0;
+          animation: lineGrow 900ms ease-out forwards;
+          animation-delay: 250ms;
+        }
+
+        .subtitle-anim {
+          opacity: 0;
+          transform: translateY(6px);
+          animation: subtitleIn 900ms ease-out forwards;
+          animation-delay: 450ms;
+        }
+
+        @keyframes logoIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes lineGrow {
+          from { transform: translateX(-50%) scaleX(0); opacity: 0.2; }
+          to   { transform: translateX(-50%) scaleX(1); opacity: 0.9; }
+        }
+
+        @keyframes subtitleIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
