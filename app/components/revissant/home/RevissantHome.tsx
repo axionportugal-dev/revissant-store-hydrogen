@@ -1,42 +1,25 @@
-// app/components/revissant/home/RevissantHome.tsx
 import {useEffect, useState} from 'react';
+import {WelcomeScreen} from './WelcomeScreen';
 
 export function RevissantHome() {
-  /**
-   * Nota: neste commit A, vamos só garantir que a Home renderiza.
-   * A lógica real (WelcomeScreen/Popup/etc) entra nos commits seguintes.
-   */
-  const [isMounted, setIsMounted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsMounted(true);
+    setMounted(true);
   }, []);
 
   return (
-    <main className="min-h-screen bg-white">
-      <div className="mx-auto w-full max-w-[1400px] px-4">
-        <div className="py-10">
-          <h1 className="text-revissant-dark font-serif text-4xl">
-            REVISSANT Home (scaffold)
-          </h1>
-          <p className="mt-2 text-gray-500 text-sm">
-            Mounted: {isMounted ? 'yes' : 'no'}
-          </p>
+    <div className="min-h-screen">
+      <WelcomeScreen onFinished={() => setIsLoading(false)} />
 
-          <div className="mt-10 border border-gray-200 p-6">
-            <p className="text-xs font-bold tracking-[0.25em] uppercase text-gray-400">
-              Próximos passos:
-            </p>
-            <ul className="mt-4 list-disc pl-5 text-sm text-revissant-dark">
-              <li>WelcomeScreen</li>
-              <li>NewsletterPopup (5s)</li>
-              <li>Hero + fade no scroll</li>
-              <li>BestSellers carousel</li>
-              <li>Features hover + vídeo</li>
-            </ul>
-          </div>
-        </div>
+      <div className="px-8 py-16">
+        <h1 className="text-4xl font-bold">REVISSANT Home (scaffold)</h1>
+        <p className="mt-6 text-gray-600">Mounted: {mounted ? 'yes' : 'no'}</p>
+        <p className="mt-2 text-gray-600">Loading: {isLoading ? 'yes' : 'no'}</p>
+
+        {/* Próximos passos: Hero / BestSellers / Features / NewsletterPopup */}
       </div>
-    </main>
+    </div>
   );
 }
