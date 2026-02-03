@@ -394,6 +394,33 @@ export function RevissantCatalogPage() {
           padding: 6px 10px;
         }
 
+
+        .rv-overlay{
+          position:absolute;
+          inset:0;
+          background: rgba(11, 26, 43, 0.40); /* aproximação do revissant-dark/40 */
+          opacity:0;
+          transition: opacity 300ms ease;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          pointer-events:none;
+        }
+
+        .rv-imgWrap:hover .rv-overlay{
+          opacity:1;
+        }
+
+        .rv-overlayText{
+          color:#fff;
+          font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+          font-weight: 700;
+          font-size: 16px;
+          letter-spacing: .16em;
+          text-transform: uppercase;
+          text-shadow: 0 2px 10px rgba(0,0,0,.25);
+        }
+
         .rv-info{
           text-align:center;
           width:100%;
@@ -653,7 +680,9 @@ export function RevissantCatalogPage() {
 
                         {isNew ? <div className="rv-badge">NEW</div> : null}
 
-                        {/* Hover overlay "BUY NOW" fica para o commit #2 */}
+                        <div className="rv-overlay">
+                            <div className="rv-overlayText">BUY NOW</div>
+                        </div>
                       </div>
 
                       <div className="rv-info">
