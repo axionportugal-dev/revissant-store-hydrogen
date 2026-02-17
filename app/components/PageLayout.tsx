@@ -1,19 +1,27 @@
-import {Await, Link} from 'react-router';
-import {Suspense, useId} from 'react';
+import {Link} from 'react-router';
+import {useId} from 'react';
+import type {ReactNode} from 'react';
+
 import type {
   CartApiQueryFragment,
   FooterQuery,
   HeaderQuery,
 } from 'storefrontapi.generated';
+
 import {Aside} from '~/components/Aside';
 import {Footer} from '~/components/Footer';
-import {Header, HeaderMenu} from '~/components/Header';
-import {CartMain} from '~/components/CartMain';
+import {Header} from '~/components/Header';
+
 import {
   SEARCH_ENDPOINT,
   SearchFormPredictive,
 } from '~/components/SearchFormPredictive';
 import {SearchResultsPredictive} from '~/components/SearchResultsPredictive';
+
+import {ToastContainer} from '~/components/revissant/ui/ToastContainer';
+import {RevissantMobileMenuAside} from '~/components/revissant/layout/RevissantMobileMenuAside';
+import {RevissantAccountAside} from '~/components/revissant/layout/RevissantAccountAside';
+import {RevissantCartAside} from '~/components/revissant/layout/RevissantCartAside';
 
 interface PageLayoutProps {
   cart: Promise<CartApiQueryFragment | null>;
@@ -21,7 +29,7 @@ interface PageLayoutProps {
   header: HeaderQuery;
   isLoggedIn: Promise<boolean>;
   publicStoreDomain: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export function PageLayout({
@@ -34,38 +42,38 @@ export function PageLayout({
 }: PageLayoutProps) {
   return (
     <Aside.Provider>
-      <CartAside cart={cart} />
+      {/* drawer core (search) mantém-se fora do scope Revissant */}
       <SearchAside />
-      <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
-      {header && (
-        <Header
+
+      {/* UI REVISSANT (scoped) */}
+      <div className="revissant min-h-screen flex flex-col">
+        {/* drawers REVISSANT */}
+        <RevissantMobileMenuAside />
+        <RevissantAccountAside />
+        <RevissantCartAside cart={cart} />
+
+        {header && (
+          <Header
+            header={header}
+            cart={cart}
+            isLoggedIn={isLoggedIn}
+            publicStoreDomain={publicStoreDomain}
+          />
+        )}
+
+        {/* dá flex-1 ao main para o footer ir “para baixo” de forma consistente */}
+        <main className="flex-1">{children}</main>
+
+        <Footer
+          footer={footer}
           header={header}
-          cart={cart}
-          isLoggedIn={isLoggedIn}
           publicStoreDomain={publicStoreDomain}
         />
-      )}
-      <main>{children}</main>
-      <Footer
-        footer={footer}
-        header={header}
-        publicStoreDomain={publicStoreDomain}
-      />
-    </Aside.Provider>
-  );
-}
 
-function CartAside({cart}: {cart: PageLayoutProps['cart']}) {
-  return (
-    <Aside type="cart" heading="CART">
-      <Suspense fallback={<p>Loading cart ...</p>}>
-        <Await resolve={cart}>
-          {(cart) => {
-            return <CartMain cart={cart} layout="aside" />;
-          }}
-        </Await>
-      </Suspense>
-    </Aside>
+        {/* global toast (se queres que o estilo seja Revissant, deixa aqui dentro) */}
+        <ToastContainer />
+      </div>
+    </Aside.Provider>
   );
 }
 
@@ -97,13 +105,8 @@ function SearchAside() {
           {({items, total, term, state, closeSearch}) => {
             const {articles, collections, pages, products, queries} = items;
 
-            if (state === 'loading' && term.current) {
-              return <div>Loading...</div>;
-            }
-
-            if (!total) {
-              return <SearchResultsPredictive.Empty term={term} />;
-            }
+            if (state === 'loading' && term.current) return <div>Loading...</div>;
+            if (!total) return <SearchResultsPredictive.Empty term={term} />;
 
             return (
               <>
@@ -148,27 +151,5 @@ function SearchAside() {
         </SearchResultsPredictive>
       </div>
     </Aside>
-  );
-}
-
-function MobileMenuAside({
-  header,
-  publicStoreDomain,
-}: {
-  header: PageLayoutProps['header'];
-  publicStoreDomain: PageLayoutProps['publicStoreDomain'];
-}) {
-  return (
-    header.menu &&
-    header.shop.primaryDomain?.url && (
-      <Aside type="mobile" heading="MENU">
-        <HeaderMenu
-          menu={header.menu}
-          viewport="mobile"
-          primaryDomainUrl={header.shop.primaryDomain.url}
-          publicStoreDomain={publicStoreDomain}
-        />
-      </Aside>
-    )
   );
 }
