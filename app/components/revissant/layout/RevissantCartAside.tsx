@@ -1,0 +1,218 @@
+import {Suspense, useEffect} from 'react';
+import {Await} from 'react-router';
+import {
+  CartForm,
+  Image,
+  Money,
+  useOptimisticCart,
+  type OptimisticCartLine,
+} from '@shopify/hydrogen';
+import type {CartApiQueryFragment} from 'storefrontapi.generated';
+
+import {useAside} from '~/components/Aside';
+import {useLockBodyScroll} from '~/components/revissant/hooks/useLockBodyScroll';
+import {
+  ShoppingBagIcon,
+  TrashIcon,
+  XIcon,
+} from '~/components/revissant/ui/icons';
+
+type CartLine = OptimisticCartLine<CartApiQueryFragment>;
+
+type RevissantCartAsideProps = {
+  cart: Promise<CartApiQueryFragment | null>;
+};
+
+export function RevissantCartAside({cart}: RevissantCartAsideProps) {
+  const {type, close} = useAside();
+  const open = type === 'cart';
+
+  useLockBodyScroll(open);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, close]);
+
+  return (
+    <Suspense fallback={null}>
+      <Await resolve={cart}>
+        {(resolvedCart: CartApiQueryFragment | null) => (
+          <CartDrawerContent cart={resolvedCart} open={open} onClose={close} />
+        )}
+      </Await>
+    </Suspense>
+  );
+}
+
+function CartDrawerContent({
+  cart: originalCart,
+  open,
+  onClose,
+}: {
+  cart: CartApiQueryFragment | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const cart = useOptimisticCart(originalCart);
+  const lines = (cart?.lines?.nodes ?? []) as CartLine[];
+  const hasItems = lines.length > 0;
+  const lineCount = lines.length;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <button
+        aria-label="Close cart"
+        onClick={onClose}
+        className={`fixed inset-0 bg-black/50 z-[110] transition-opacity ${
+          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      {/* Drawer */}
+      <aside
+        aria-hidden={!open}
+        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-[120] transform transition-transform duration-300 ease-in-out shadow-2xl ${
+          open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="p-6 flex justify-between items-center border-b border-gray-100 h-20">
+          <span className="font-sans font-bold text-xl tracking-widest text-revissant-dark flex items-center gap-2">
+            CART{' '}
+            <span className="text-sm font-sans bg-revissant-dark text-white rounded-none w-6 h-6 flex items-center justify-center">
+              {lineCount}
+            </span>
+          </span>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-none transition-colors"
+            aria-label="Close cart"
+            type="button"
+          >
+            <XIcon size={24} className="text-revissant-dark" />
+          </button>
+        </div>
+
+        <div className="flex flex-col h-[calc(100%-5rem)]">
+          {!hasItems ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
+              <ShoppingBagIcon size={48} />
+              <p className="text-lg">Your cart is empty</p>
+              <button
+                onClick={onClose}
+                className="text-revissant-dark underline hover:text-blue-400"
+                type="button"
+              >
+                Start Shopping
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {lines.map((line) => {
+                  const merchandise = line.merchandise;
+                  const image = merchandise?.image;
+                  const productTitle = merchandise?.product?.title ?? 'Product';
+                  const colorLabel = getColorLabel(line);
+
+                  return (
+                    <div key={line.id} className="flex gap-4">
+                      {image ? (
+                        <Image
+                          data={image}
+                          alt={image.altText || productTitle}
+                          width={96}
+                          height={96}
+                          className="w-24 h-24 object-cover rounded-none bg-gray-100"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 bg-gray-100" />
+                      )}
+
+                      <div className="flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-bold text-revissant-dark">
+                            {productTitle}
+                          </h3>
+                          <p className="text-sm text-gray-500">{colorLabel}</p>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <span className="font-medium text-revissant-dark">
+                            {line.cost?.amountPerQuantity ? (
+                              <Money data={line.cost.amountPerQuantity} />
+                            ) : (
+                              '-'
+                            )}
+                          </span>
+                          <CartForm
+                            route="/cart"
+                            action={CartForm.ACTIONS.LinesRemove}
+                            inputs={{lineIds: [line.id]}}
+                          >
+                            <button
+                              type="submit"
+                              className="text-red-400 hover:text-red-600 p-1"
+                              aria-label="Remove item"
+                              disabled={Boolean(line.isOptimistic)}
+                            >
+                              <TrashIcon size={18} />
+                            </button>
+                          </CartForm>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-xl font-bold text-revissant-dark">
+                    {cart?.cost?.subtotalAmount ? (
+                      <Money data={cart.cost.subtotalAmount} />
+                    ) : (
+                      '-'
+                    )}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mb-4 text-center">
+                  Shipping & taxes calculated at checkout
+                </p>
+                {cart?.checkoutUrl ? (
+                  <a
+                    href={cart.checkoutUrl}
+                    target="_self"
+                    className="block text-center w-full bg-revissant-dark text-white py-4 font-bold tracking-wider hover:bg-gray-800 transition-colors uppercase rounded-none"
+                  >
+                    Proceed to Checkout
+                  </a>
+                ) : (
+                  <button
+                    className="w-full bg-gray-300 text-gray-600 py-4 font-bold tracking-wider uppercase rounded-none cursor-not-allowed"
+                    disabled
+                  >
+                    Proceed to Checkout
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function getColorLabel(line: CartLine) {
+  const options = line.merchandise?.selectedOptions ?? [];
+  const color = options.find((option) =>
+    option.name.toLowerCase().includes('color'),
+  )?.value;
+  return color || options[0]?.value || 'Standard';
+}
