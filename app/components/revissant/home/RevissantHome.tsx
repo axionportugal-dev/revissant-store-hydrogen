@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {WelcomeScreen} from './WelcomeScreen';
-import {NewsletterPopup} from './NewsletterPopUp';
+import {NewsletterPopup} from './NewsletterPopup';
 
 export function RevissantHome() {
   const [isWelcomeDone, setIsWelcomeDone] = useState(false);

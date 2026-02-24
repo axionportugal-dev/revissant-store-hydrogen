@@ -96,7 +96,7 @@ export function NewsletterPopup({
           <div className="flex h-full flex-col justify-center bg-white px-8 py-10 md:px-16 md:py-14">
             <div className="flex justify-center">
   <img
-    src="/logo.png"
+    src="/logotipo.png"
     alt="Revissant"
     className="h-[70px] w-auto"
     draggable={false}
