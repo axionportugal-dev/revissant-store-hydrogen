@@ -2,172 +2,212 @@
 import {useEffect, useState} from 'react';
 import {useLockBodyScroll} from '~/components/revissant/hooks/useLockBodyScroll';
 
-type NewsletterPopupProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  delayMs?: number;
-};
+function IconX({size = 20, className}: {size?: number; className?: string}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M6 6l12 12M18 6L6 18"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconCheck({size = 24, className}: {size?: number; className?: string}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12l4 4L19 6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 /**
- * Popup simples e independente (não usa Aside do Hydrogen)
- * para não colidir com o layout-shell do Sousa.
+ * NewsletterPopup (AI Studio 1:1)
+ * - Abre automaticamente após 15s
+ * - Lock do body enquanto estiver aberto
+ * - Estado de sucesso com auto-close
  */
-export function NewsletterPopup({
-  isOpen,
-  onClose,
-  delayMs: _delayMs = 5000,
-}: NewsletterPopupProps) {
-  const FADE_MS = 260;
+export function NewsletterPopup() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const [visible, setVisible] = useState(isOpen);
+  const [emailFocus, setEmailFocus] = useState(false);
+  const [nameFocus, setNameFocus] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      setShouldRender(true);
-      requestAnimationFrame(() => setVisible(true));
-      return;
-    }
+    const timer = window.setTimeout(() => {
+      setIsOpen(true);
+    }, 15000);
 
-    if (shouldRender) {
-      setVisible(false);
-      const t = window.setTimeout(() => setShouldRender(false), FADE_MS);
-      return () => window.clearTimeout(t);
-    }
-  }, [isOpen, shouldRender]);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-  // lock scroll enquanto estiver montado (inclui durante fade-out)
-  useLockBodyScroll(shouldRender);
+  useLockBodyScroll(isOpen);
 
-  // fechar com ESC (enquanto estiver montado)
   useEffect(() => {
-    if (!shouldRender) return;
+    if (!isSubmitted) return;
+    const timer = window.setTimeout(() => {
+      handleClose();
+    }, 3500);
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    return () => window.clearTimeout(timer);
+  }, [isSubmitted]);
 
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [shouldRender, onClose]);
+  const handleClose = () => {
+    setIsOpen(false);
+    setIsSubmitted(false);
+    setEmail('');
+    setName('');
+  };
 
-  if (!shouldRender) return null;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email && name) {
+      setIsSubmitted(true);
+    }
+  };
+
+  if (!isOpen) return null;
 
   const IMG = '/images/newsletter.jpg';
 
   return (
-    <div
-      className={[
-        'fixed inset-0 z-[210]',
-        visible ? 'pointer-events-auto' : 'pointer-events-none',
-      ].join(' ')}
-    >
-      {/* overlay (site visível por trás + blur + tint) */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
       <button
         aria-label="Close newsletter popup"
-        onClick={onClose}
-        className={[
-          'absolute inset-0',
-          // tint (não sólido)
-          'bg-[#0b1a33]/25',
-          // blur do que está por trás
-          'backdrop-blur-[6px]',
-          // animação
-          'transition-opacity duration-[260ms] ease-out',
-          visible ? 'opacity-100' : 'opacity-0',
-        ].join(' ')}
+        onClick={handleClose}
+        className="absolute inset-0 bg-[#0F2445]/40 backdrop-blur-md transition-opacity duration-500"
       />
 
-      {/* modal */}
-      <div
-        className={[
-          'absolute left-1/2 top-1/2',
-          'w-[min(1100px,calc(100vw-120px))]',
-          'h-[min(560px,calc(100vh-140px))]',
-          '-translate-x-1/2 -translate-y-1/2',
-          'shadow-[0_18px_50px_rgba(0,0,0,0.35)]',
-          'transition-[opacity,transform] duration-[260ms] ease-out',
-          visible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.985]',
-        ].join(' ')}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="grid h-full w-full grid-cols-1 overflow-hidden md:grid-cols-2">
-          {/* LEFT */}
-          <div className="flex h-full flex-col justify-center bg-white px-8 py-10 md:px-16 md:py-14">
-            <div className="flex justify-center">
-  <img
-    src="/logotipo.png"
-    alt="Revissant"
-    className="h-[70px] w-auto"
-    draggable={false}
-  />
-</div>
+      {/* Modal */}
+      <div className="relative bg-white w-full max-w-4xl h-[550px] shadow-2xl flex animate-fade-in overflow-hidden rounded-lg">
+        {/* Close Button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-6 right-6 z-20 p-2 bg-white/50 hover:bg-white rounded-full transition-colors"
+          aria-label="Close"
+          type="button"
+        >
+          <IconX size={20} className="text-[#0F2445]" />
+        </button>
 
+        {/* Left Side: Content */}
+        <div className="w-full md:w-1/2 p-12 flex flex-col items-center justify-center text-center bg-white">
+          {!isSubmitted ? (
+            <>
+              <h2 className="text-2xl font-serif text-[#0F2445] tracking-widest mb-2 uppercase">
+                Revissant
+              </h2>
+              <h3 className="text-3xl font-bold text-[#0F2445] mb-4 uppercase">
+                Join Us
+              </h3>
+              <p className="text-gray-400 text-xs tracking-widest mb-10">
+                GET 15% DISCOUNT ON YOUR FIRST ORDER
+              </p>
 
-            <div className="mt-2 text-center text-[28px] font-bold tracking-[0.06em] text-[#13284d]">
-              JOIN US
-            </div>
-
-            <div className="mt-3 text-center text-[12px] tracking-[0.12em] text-[#13284d]/55">
-              GET 15% DISCOUNT ON YOUR FIRST ORDER
-            </div>
-
-            <form
-              className="mt-8 flex w-full flex-col items-center gap-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                onClose();
-              }}
-            >
-              <input
-                type="email"
-                required
-                placeholder="EMAIL"
-                style={{textAlign: 'center'}}
-                className="h-[44px] w-[min(360px,100%)] border border-[#13284d]/20 px-4 text-[12px] tracking-[0.10em] text-[#13284d] outline-none placeholder:text-[#13284d]/45"
-              />
-
-              <input
-                type="text"
-                placeholder="NAME"
-                style={{textAlign: 'center'}}
-                className="h-[44px] w-[min(360px,100%)] border border-[#13284d]/20 px-4 text-[12px] tracking-[0.10em] text-[#13284d] outline-none placeholder:text-[#13284d]/45"
-              />
-
-              <button
-                type="submit"
-                className="mt-1 h-[48px] w-[min(360px,100%)] bg-[#13284d] text-[11px] tracking-[0.22em] text-white shadow-[0_10px_24px_rgba(19,40,77,0.25)] hover:opacity-95"
+              <form
+                className="w-full max-w-xs space-y-4"
+                onSubmit={handleSubmit}
               >
-                BECOME A MEMBER
-              </button>
-            </form>
-          </div>
+                {/* Email Input with Absolute Placeholder */}
+                <div className="relative w-full">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setEmailFocus(true)}
+                    onBlur={() => setEmailFocus(false)}
+                    className="w-full border border-gray-300 bg-transparent rounded-none py-4 px-4 text-center text-xs font-bold tracking-widest outline-none focus:border-[#0F2445] focus:ring-0 transition-colors appearance-none text-[#0F2445] placeholder-transparent relative z-10"
+                    placeholder="EMAIL"
+                    required
+                  />
+                  <span
+                    className={[
+                      'absolute inset-0 flex items-center justify-center pointer-events-none text-xs font-bold tracking-widest text-gray-400 transition-opacity duration-200 z-0',
+                      email || emailFocus ? 'opacity-0' : 'opacity-100',
+                    ].join(' ')}
+                  >
+                    EMAIL
+                  </span>
+                </div>
 
-          {/* RIGHT desktop */}
-          <div className="relative hidden h-full md:block">
-            <img src={IMG} alt="" className="h-full w-full object-cover" />
-            <button
-              onClick={onClose}
-              className="absolute right-3 top-3 grid h-[34px] w-[34px] place-items-center border border-black/15 bg-white/70 text-[22px] leading-none hover:bg-white"
-              aria-label="Close"
-              type="button"
-            >
-              ×
-            </button>
-          </div>
+                {/* Name Input with Absolute Placeholder */}
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onFocus={() => setNameFocus(true)}
+                    onBlur={() => setNameFocus(false)}
+                    className="w-full border border-gray-300 bg-transparent rounded-none py-4 px-4 text-center text-xs font-bold tracking-widest outline-none focus:border-[#0F2445] focus:ring-0 transition-colors appearance-none text-[#0F2445] placeholder-transparent relative z-10"
+                    placeholder="NAME"
+                    required
+                  />
+                  <span
+                    className={[
+                      'absolute inset-0 flex items-center justify-center pointer-events-none text-xs font-bold tracking-widest text-gray-400 transition-opacity duration-200 z-0',
+                      name || nameFocus ? 'opacity-0' : 'opacity-100',
+                    ].join(' ')}
+                  >
+                    NAME
+                  </span>
+                </div>
 
-          {/* Mobile image */}
-          <div className="relative block h-[240px] md:hidden">
-            <img src={IMG} alt="" className="h-full w-full object-cover" />
-            <button
-              onClick={onClose}
-              className="absolute right-3 top-3 grid h-[34px] w-[34px] place-items-center border border-black/15 bg-white/70 text-[22px] leading-none hover:bg-white"
-              aria-label="Close"
-              type="button"
-            >
-              ×
-            </button>
-          </div>
+                <button
+                  type="submit"
+                  className="w-full bg-[#0F2445] text-white rounded-none py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-[#1a3a6e] transition-colors mt-4 shadow-lg"
+                >
+                  Become a Member
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="flex flex-col items-center animate-fade-in">
+              <div className="w-16 h-16 border border-[#0F2445]/20 rounded-full flex items-center justify-center mb-6 text-[#0F2445]">
+                <IconCheck size={24} />
+              </div>
+              <h3 className="text-2xl font-serif text-[#0F2445] italic mb-2">
+                Welcome
+              </h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                You are on the list
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Image */}
+        <div className="hidden md:block w-1/2 relative h-full">
+          <img
+            src={IMG}
+            alt="Luxury Interior"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </div>

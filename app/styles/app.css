@@ -485,6 +485,41 @@ button.reset:hover:not(:has(> *)) {
   animation: revissantFadeIn 0.25s ease-out both;
 }
 
+@keyframes revissantSubtlePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.85;
+  }
+}
+
+.animate-subtle-pulse {
+  animation: revissantSubtlePulse 6s ease-in-out infinite;
+}
+
+/* Aplicar delay de animação sem colidir com a utility global `delay-700`. */
+.animate-subtle-pulse.delay-700 {
+  animation-delay: 700ms;
+}
+
+/*
+  Offset comum para páginas com header fixo (catalog/faq),
+  mantendo o spacing interno de cada página e evitando overlap no topo.
+*/
+.revissant-page-offset {
+  margin-top: calc(78px - 48px);
+}
+
+@media (max-width: 640px) {
+  .revissant-page-offset {
+    margin-top: calc(70px - 48px);
+  }
+}
+
 /* Remove scrollbar (igual ao AI Studio) */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

@@ -1,45 +1,48 @@
-import {useEffect, useRef, useState} from 'react';
+// app/components/revissant/home/RevissantHome.tsx
+import {useState} from 'react';
 import {WelcomeScreen} from './WelcomeScreen';
 import {NewsletterPopup} from './NewsletterPopup';
+import {Hero} from './Hero';
+import {BestSellers} from './BestSellers';
+import Features from './Features';
 
-export function RevissantHome() {
+export type BestSellerProduct = {
+  id: string;
+  title: string;
+  handle: string;
+  featuredImage?: {
+    url: string;
+    altText?: string | null;
+    width?: number | null;
+    height?: number | null;
+  } | null;
+  priceRange?: {
+    minVariantPrice?: {
+      amount: string;
+      currencyCode: string;
+    } | null;
+  } | null;
+};
+
+type RevissantHomeProps = {
+  bestSellers: BestSellerProduct[];
+};
+
+export function RevissantHome({bestSellers}: RevissantHomeProps) {
   const [isWelcomeDone, setIsWelcomeDone] = useState(false);
-  const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
-
-  const hasShownNewsletterRef = useRef(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      // Só abrir se:
-      // - welcome já acabou
-      // - ainda não mostramos nesta sessão
-      if (isWelcomeDone && !hasShownNewsletterRef.current) {
-        hasShownNewsletterRef.current = true;
-        setIsNewsletterOpen(true);
-      }
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [isWelcomeDone]);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen flex flex-col bg-[#0F2445]">
       {!isWelcomeDone && (
         <WelcomeScreen onFinished={() => setIsWelcomeDone(true)} />
       )}
 
-      <NewsletterPopup
-        isOpen={isNewsletterOpen}
-        onClose={() => setIsNewsletterOpen(false)}
-      />
+      <NewsletterPopup />
 
-      {/* Conteúdo da Home (por agora podes manter o scaffold) */}
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-10">
-        <h1 className="text-4xl font-serif text-[#0F2445]">REVISSANT</h1>
-        <p className="mt-2 text-gray-500 text-sm">
-          Welcome done: {isWelcomeDone ? 'yes' : 'no'}
-        </p>
-      </div>
+      {/* Home sections */}
+      <Hero />
+      <BestSellers products={bestSellers} />
+      <Features />
     </main>
   );
 }

@@ -81,7 +81,7 @@ export function RevissantCatalogPage() {
   }
 
   return (
-    <div className="rv-catalog">
+    <div className="rv-catalog revissant-page-offset">
       <style>{`
         :root{
           --rv-dark:#0b1a2b;        /* aproximação do "revissant-dark" */

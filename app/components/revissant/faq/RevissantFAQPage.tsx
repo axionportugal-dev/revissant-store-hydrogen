@@ -126,7 +126,7 @@ export function RevissantFAQPage() {
   }
 
   return (
-    <div className="rvfaq-root">
+    <div className="rvfaq-root revissant-page-offset">
       <style>{`
         :root{
           --rv-dark:#0b1a2b;
@@ -155,6 +155,8 @@ export function RevissantFAQPage() {
 
         .rvfaq-header{
           text-align:center;
+          /* Alinha o início visual do título com o catalog sem alterar os espaçamentos internos */
+          padding-top: 12px;
           margin-bottom: 64px;
           max-width: 760px;
           margin-left:auto;
