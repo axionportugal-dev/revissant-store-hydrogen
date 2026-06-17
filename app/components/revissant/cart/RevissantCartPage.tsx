@@ -1,4 +1,4 @@
-import {Link} from 'react-router';
+import {Link, useParams} from 'react-router';
 import {
   CartForm,
   Image,
@@ -9,6 +9,7 @@ import {
 import type {CartApiQueryFragment} from 'storefrontapi.generated';
 
 import {ShoppingBagIcon, TrashIcon, XIcon} from '~/components/revissant/ui/icons';
+import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
 
 type CartLine = OptimisticCartLine<CartApiQueryFragment>;
 
@@ -17,24 +18,26 @@ type RevissantCartPageProps = {
 };
 
 export function RevissantCartPage({cart: originalCart}: RevissantCartPageProps) {
+  const {locale} = useParams();
   const cart = useOptimisticCart(originalCart);
   const lines = (cart?.lines?.nodes ?? []) as CartLine[];
   const hasItems = lines.length > 0;
-  const lineCount = lines.length;
+  const totalQuantity = cart?.totalQuantity ?? 0;
+  const homePath = getLocalePathPrefix(locale) || '/';
 
   return (
-    <section className="bg-white">
+    <section className="bg-white revissant-page-offset">
       <div className="container mx-auto px-4 md:px-8 py-12">
         <div className="max-w-3xl mx-auto bg-white shadow-2xl border border-gray-100">
           <div className="p-6 flex justify-between items-center border-b border-gray-100 h-20">
             <span className="font-sans font-bold text-xl tracking-widest text-revissant-dark flex items-center gap-2">
               CART{' '}
               <span className="text-sm font-sans bg-revissant-dark text-white rounded-none w-6 h-6 flex items-center justify-center">
-                {lineCount}
+                {totalQuantity}
               </span>
             </span>
             <Link
-              to="/"
+              to={homePath}
               className="p-2 hover:bg-gray-100 rounded-none transition-colors"
               aria-label="Close cart"
             >
@@ -48,7 +51,7 @@ export function RevissantCartPage({cart: originalCart}: RevissantCartPageProps) 
                 <ShoppingBagIcon size={48} />
                 <p className="text-lg">Your cart is empty</p>
                 <Link
-                  to="/"
+                  to={homePath}
                   className="text-revissant-dark underline hover:text-blue-400"
                 >
                   Start Shopping

@@ -1,13 +1,12 @@
-import {Suspense, useMemo} from 'react';
-import {Await, Link, useLocation} from 'react-router';
+import {Suspense} from 'react';
+import {Await, Link, useMatches, useParams} from 'react-router';
+import {useOptimisticCart} from '@shopify/hydrogen';
 
 import type {HeaderQuery, CartApiQueryFragment} from 'storefrontapi.generated';
 import {useAside} from '~/components/Aside';
 
 import {useScrollThreshold} from '~/components/revissant/hooks/useScrollThreshold';
-import {isHomePath} from '~/components/revissant/utils/isHomePath';
-
-import styles from './RevissantHeader.module.css';
+import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
 
 type Props = {
   header: HeaderQuery;
@@ -19,9 +18,11 @@ type Props = {
 
 export function RevissantHeader({cart}: Props) {
   const {open} = useAside();
-  const location = useLocation();
+  const matches = useMatches();
+  const {locale} = useParams();
 
-  const isHome = useMemo(() => isHomePath(location.pathname), [location.pathname]);
+  const isHome = matches.some((match) => match.id === 'routes/($locale)._index');
+  const homePath = getLocalePathPrefix(locale) || '/';
 
   // Ajusta este número para bater 1:1 com o momento em que o logo gigante da hero começa a desaparecer.
   const {isBelowThreshold} = useScrollThreshold(140);
@@ -33,13 +34,17 @@ export function RevissantHeader({cart}: Props) {
   const showCenterLogo = solidHeader;
 
   return (
-    <header className={`${styles.header} ${solidHeader ? styles.solid : styles.transparent}`}>
-      <div className={styles.inner}>
+    <header
+      className={`revissant-header ${
+        solidHeader ? 'revissant-header--solid' : 'revissant-header--transparent'
+      }`}
+    >
+      <div className="revissant-header__inner">
         {/* LEFT: hamburger */}
-        <div className={styles.left}>
+        <div className="revissant-header__left">
           <button
             type="button"
-            className={`${styles.iconBtn} ${styles.iconBtnSquare}`}
+            className="revissant-header__icon-btn revissant-header__icon-btn--square"
             aria-label="Open menu"
             onClick={() => open('mobile')}
           >
@@ -48,30 +53,32 @@ export function RevissantHeader({cart}: Props) {
         </div>
 
         {/* CENTER: logo clicável */}
-        <div className={styles.center}>
+        <div className="revissant-header__center">
           <Link
-            to="/"
+            to={homePath}
             aria-label="Go to home"
-            className={`${styles.centerLogo} ${
-              showCenterLogo ? styles.centerLogoVisible : styles.centerLogoHidden
+            className={`revissant-header__center-logo ${
+              showCenterLogo
+                ? 'revissant-header__center-logo--visible'
+                : 'revissant-header__center-logo--hidden'
             }`}
           >
             <img
               src="/logotipo.png"
               alt="REVISSANT"
-              className={styles.logoImg}
+              className="revissant-header__logo-img"
               draggable={false}
             />
           </Link>
         </div>
 
         {/* RIGHT: EUR + user + cart */}
-        <div className={styles.right}>
-          <div className={styles.currency}>EUR.</div>
+        <div className="revissant-header__right">
+          <div className="revissant-header__currency">EUR.</div>
 
           <button
             type="button"
-            className={`${styles.iconBtn} ${styles.iconBtnRound}`}
+            className="revissant-header__icon-btn revissant-header__icon-btn--round"
             aria-label="Account"
             onClick={() => open('account' as any)}
           >
@@ -80,7 +87,7 @@ export function RevissantHeader({cart}: Props) {
 
           <button
             type="button"
-            className={`${styles.iconBtn} ${styles.iconBtnRound}`}
+            className="revissant-header__icon-btn revissant-header__icon-btn--round"
             aria-label="Cart"
             onClick={() => open('cart')}
           >
@@ -88,11 +95,9 @@ export function RevissantHeader({cart}: Props) {
 
             <Suspense fallback={null}>
               <Await resolve={cart}>
-                {(c: CartApiQueryFragment | null) => {
-                  const qty = c?.totalQuantity ?? 0;
-                  if (!qty) return null;
-                  return <span className={styles.badge}>{qty}</span>;
-                }}
+                {(resolvedCart: CartApiQueryFragment | null) => (
+                  <OptimisticHeaderCartBadge cart={resolvedCart} />
+                )}
               </Await>
             </Suspense>
           </button>
@@ -100,6 +105,19 @@ export function RevissantHeader({cart}: Props) {
       </div>
     </header>
   );
+}
+
+function OptimisticHeaderCartBadge({
+  cart: originalCart,
+}: {
+  cart: CartApiQueryFragment | null;
+}) {
+  const cart = useOptimisticCart(originalCart);
+  const totalQuantity = cart?.totalQuantity ?? 0;
+
+  if (!totalQuantity) return null;
+
+  return <span className="revissant-header__badge">{totalQuantity}</span>;
 }
 
 /* ===== inline SVG icons ===== */

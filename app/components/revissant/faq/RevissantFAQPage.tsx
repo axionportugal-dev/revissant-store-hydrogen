@@ -128,7 +128,7 @@ export function RevissantFAQPage() {
   return (
     <div className="rvfaq-root revissant-page-offset">
       <style>{`
-        :root{
+        .rvfaq-root{
           --rv-dark:#0b1a2b;
           --rv-blue:#60a5fa;
           --rv-gray-50:#f9fafb;
@@ -279,15 +279,19 @@ export function RevissantFAQPage() {
         }
 
         .rvfaq-panel{
-          overflow:hidden;
-          transition: max-height 420ms ease, opacity 320ms ease;
-          max-height: 0;
+          display: grid;
+          grid-template-rows: 0fr;
           opacity: 0;
           padding-right: 28px;
+          transition: grid-template-rows 320ms ease, opacity 220ms ease;
         }
         .rvfaq-panel.open{
-          max-height: 240px;
+          grid-template-rows: 1fr;
           opacity: 1;
+        }
+
+        .rvfaq-panelInner{
+          overflow: hidden;
           padding-bottom: 18px;
         }
 
@@ -393,7 +397,9 @@ export function RevissantFAQPage() {
                   </button>
 
                   <div className={`rvfaq-panel ${isOpen ? 'open' : ''}`}>
-                    <p className="rvfaq-a">{faq.answer}</p>
+                    <div className="rvfaq-panelInner">
+                      <p className="rvfaq-a">{faq.answer}</p>
+                    </div>
                   </div>
                 </div>
               );

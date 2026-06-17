@@ -6,7 +6,13 @@ import {
   useNavigate,
   useSubmit,
 } from 'react-router';
+import {AddToCartButton} from '~/components/AddToCartButton';
+import {useAside} from '~/components/Aside';
+import {pushToast} from '~/components/revissant/ui/toast';
 import type {loader} from '~/routes/($locale).catalog';
+
+type CatalogLoaderData = Awaited<ReturnType<typeof loader>>;
+type CatalogProduct = CatalogLoaderData['products'][number];
 
 const TAGS = [
   {label: 'NEW ARRIVALS', value: 'new'},
@@ -47,6 +53,7 @@ export function RevissantCatalogPage() {
   const {products, selectedTag, selectedPriceRange} =
     useLoaderData<typeof loader>();
 
+  const {open} = useAside();
   const navigate = useNavigate();
   const submit = useSubmit();
 
@@ -64,7 +71,7 @@ export function RevissantCatalogPage() {
     if (!searchQuery.trim()) return products;
 
     const q = normalize(searchQuery);
-    return products.filter((p) => {
+    return products.filter((p: CatalogProduct) => {
       const name = normalize(p.title);
       const tags = normalize((p.tags ?? []).join(' '));
       return name.includes(q) || tags.includes(q);
@@ -83,7 +90,7 @@ export function RevissantCatalogPage() {
   return (
     <div className="rv-catalog revissant-page-offset">
       <style>{`
-        :root{
+        .rv-catalog{
           --rv-dark:#0b1a2b;        /* aproximação do "revissant-dark" */
           --rv-blue:#60a5fa;        /* aproximação do blue-400 */
           --rv-gray-50:#f9fafb;
@@ -434,6 +441,11 @@ export function RevissantCatalogPage() {
           color: var(--rv-text);
           margin: 0 0 6px;
         }
+        .rv-nameLink{
+          display:block;
+          color: inherit;
+          text-decoration: none;
+        }
         .rv-price{
           font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
           font-weight: 800;
@@ -452,11 +464,15 @@ export function RevissantCatalogPage() {
           letter-spacing: .14em;
           text-transform: uppercase;
           transition: background 180ms ease;
-          cursor: default;
+          cursor: pointer;
           user-select:none;
         }
         .rv-btn:hover{
           background: var(--rv-blue);
+        }
+        .rv-btn:disabled{
+          opacity: .65;
+          cursor: not-allowed;
         }
 
         /* Pagination */
@@ -650,10 +666,13 @@ export function RevissantCatalogPage() {
               <div
                 className={`rv-grid ${isFilterOpen ? 'open' : 'closed'}`}
               >
-                {current.map((p) => {
+                {current.map((p: CatalogProduct) => {
                   const isNew = (p.tags ?? []).includes('new');
                   const imgUrl = p.image?.url ?? '';
                   const alt = p.image?.altText ?? p.title;
+                  const selectedVariant = p.selectedVariant;
+                  const isAvailable = Boolean(selectedVariant?.availableForSale);
+                  const buttonText = isAvailable ? 'ADD TO CART' : 'SOLD OUT';
 
                   return (
                     <div key={p.id} className="rv-card">
@@ -686,7 +705,12 @@ export function RevissantCatalogPage() {
                       </div>
 
                       <div className="rv-info">
-                        <h3 className="rv-name">{p.title}</h3>
+                        <Link
+                          to={`/products/${p.handle}`}
+                          className="rv-nameLink"
+                        >
+                          <h3 className="rv-name">{p.title}</h3>
+                        </Link>
                         <p className="rv-price">
                           {formatMoney(
                             p.minPrice.amount,
@@ -694,10 +718,28 @@ export function RevissantCatalogPage() {
                           )}
                         </p>
 
-                        {/* Ainda sem cart nesta fase: botão é só UI */}
-                        <span className="rv-btn" title="Cart ligado no commit seguinte">
-                          ADD TO CART
-                        </span>
+                        <AddToCartButton
+                          buttonAriaLabel={`${buttonText} ${p.title}`}
+                          buttonClassName="rv-btn"
+                          disabled={!selectedVariant || !isAvailable}
+                          lines={
+                            selectedVariant
+                              ? [
+                                  {
+                                    merchandiseId: selectedVariant.id,
+                                    quantity: 1,
+                                    selectedVariant,
+                                  },
+                                ]
+                              : []
+                          }
+                          onClick={() => {
+                            open('cart');
+                            pushToast({message: 'Product added to your cart'});
+                          }}
+                        >
+                          {buttonText}
+                        </AddToCartButton>
 
                         {/* link discreto para debug (podes remover depois) */}
                         <div style={{marginTop: 10, opacity: 0.0}}>

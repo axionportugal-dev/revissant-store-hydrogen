@@ -61,7 +61,7 @@ function CartDrawerContent({
   const cart = useOptimisticCart(originalCart);
   const lines = (cart?.lines?.nodes ?? []) as CartLine[];
   const hasItems = lines.length > 0;
-  const lineCount = lines.length;
+  const totalQuantity = cart?.totalQuantity ?? 0;
 
   return (
     <>
@@ -77,7 +77,7 @@ function CartDrawerContent({
       {/* Drawer */}
       <aside
         aria-hidden={!open}
-        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-white z-[120] transform transition-transform duration-300 ease-in-out shadow-2xl ${
+        className={`fixed top-0 right-0 h-full w-full max-w-full sm:w-[400px] bg-white z-[120] transform overflow-hidden transition-transform duration-300 ease-in-out shadow-2xl ${
           open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
@@ -85,7 +85,7 @@ function CartDrawerContent({
           <span className="font-sans font-bold text-xl tracking-widest text-revissant-dark flex items-center gap-2">
             CART{' '}
             <span className="text-sm font-sans bg-revissant-dark text-white rounded-none w-6 h-6 flex items-center justify-center">
-              {lineCount}
+              {totalQuantity}
             </span>
           </span>
           <button
@@ -98,7 +98,7 @@ function CartDrawerContent({
           </button>
         </div>
 
-        <div className="flex flex-col h-[calc(100%-5rem)]">
+        <div className="flex flex-col h-[calc(100%-5rem)] overflow-hidden">
           {!hasItems ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
               <ShoppingBagIcon size={48} />
@@ -121,7 +121,7 @@ function CartDrawerContent({
                   const colorLabel = getColorLabel(line);
 
                   return (
-                    <div key={line.id} className="flex gap-4">
+                    <div key={line.id} className="flex gap-4 min-w-0">
                       {image ? (
                         <Image
                           data={image}
@@ -134,9 +134,9 @@ function CartDrawerContent({
                         <div className="w-24 h-24 bg-gray-100" />
                       )}
 
-                      <div className="flex-1 flex flex-col justify-between">
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div>
-                          <h3 className="font-bold text-revissant-dark">
+                          <h3 className="font-bold text-revissant-dark break-words">
                             {productTitle}
                           </h3>
                           <p className="text-sm text-gray-500">{colorLabel}</p>

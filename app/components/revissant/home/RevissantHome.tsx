@@ -25,10 +25,10 @@ export type BestSellerProduct = {
 };
 
 type RevissantHomeProps = {
-  bestSellers: BestSellerProduct[];
+  bestSellers?: BestSellerProduct[];
 };
 
-export function RevissantHome({bestSellers}: RevissantHomeProps) {
+export function RevissantHome({bestSellers = []}: RevissantHomeProps) {
   const [isWelcomeDone, setIsWelcomeDone] = useState(false);
 
   return (

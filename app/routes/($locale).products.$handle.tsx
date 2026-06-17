@@ -1,5 +1,9 @@
 import {useLoaderData} from 'react-router';
-import type {Route} from './+types/products.$handle';
+import type {Route} from './+types/($locale).products.$handle';
+import type {
+  FallbackProductsQuery,
+  ProductRecommendationsQuery,
+} from 'storefrontapi.generated';
 import {RevissantProductPage} from '~/components/revissant/product';
 
 import {
@@ -11,6 +15,11 @@ import {
 } from '@shopify/hydrogen';
 
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
+
+type RecommendedProduct = NonNullable<
+  NonNullable<ProductRecommendationsQuery['productRecommendations']>[number]
+>;
+type FallbackProduct = FallbackProductsQuery['products']['nodes'][number];
 
 
 export const meta: Route.MetaFunction = ({data}) => {
@@ -61,7 +70,9 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
     variables: {productId: product.id},
   });
 
-  let recommendations = (recoData?.productRecommendations ?? []).filter(Boolean);
+  let recommendations = (
+    recoData?.productRecommendations ?? []
+  ).filter(Boolean) as RecommendedProduct[];
 
   // Fallback C: se não houver recomendações da Shopify ainda
   if (recommendations.length === 0) {
@@ -83,10 +94,12 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
         variables: {first: 12, query: fallbackQuery},
       });
 
-      const nodes = (fbData?.products?.nodes ?? []).filter(Boolean);
+      const nodes: FallbackProduct[] = (fbData?.products?.nodes ?? []).filter(
+        (product): product is FallbackProduct => Boolean(product),
+      );
 
       recommendations = nodes
-        .filter((p: any) => p?.id && p.id !== product.id)
+        .filter((candidate: FallbackProduct) => candidate.id !== product.id)
         .slice(0, 4);
     } else {
       recommendations = [];
@@ -281,6 +294,29 @@ const RECOMMENDATIONS_QUERY = `#graphql
           currencyCode
         }
       }
+      selectedOrFirstAvailableVariant {
+        id
+        availableForSale
+        title
+        price {
+          amount
+          currencyCode
+        }
+        image {
+          url
+          altText
+          width
+          height
+        }
+        product {
+          title
+          handle
+        }
+        selectedOptions {
+          name
+          value
+        }
+      }
     }
   }
 ` as const;
@@ -306,6 +342,29 @@ const FALLBACK_PRODUCTS_QUERY = `#graphql
           minVariantPrice {
             amount
             currencyCode
+          }
+        }
+        selectedOrFirstAvailableVariant {
+          id
+          availableForSale
+          title
+          price {
+            amount
+            currencyCode
+          }
+          image {
+            url
+            altText
+            width
+            height
+          }
+          product {
+            title
+            handle
+          }
+          selectedOptions {
+            name
+            value
           }
         }
       }
