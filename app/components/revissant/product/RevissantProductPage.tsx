@@ -1,5 +1,8 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Link, useLocation, useNavigate, useSearchParams} from 'react-router';
+import {AddToCartButton} from '~/components/AddToCartButton';
+import {useAside} from '~/components/Aside';
+import {pushToast} from '~/components/revissant/ui/toast';
 type Money = {amount: string; currencyCode: string};
 
 type ProductImage = {
@@ -15,6 +18,7 @@ type Recommendation = {
   handle: string;
   featuredImage?: {url: string; altText?: string | null} | null;
   priceRange: {minVariantPrice: Money};
+  selectedOrFirstAvailableVariant?: Variant | null;
 };
 
 type SelectedOption = {name: string; value: string};
@@ -36,6 +40,7 @@ type ProductOption = {
 };
 
 type Variant = {
+  availableForSale?: boolean;
   id: string;
   image?: ProductImage | null;
   price: Money;
@@ -86,6 +91,7 @@ export function RevissantProductPage(props: {
 
   const navigate = useNavigate();
   const location = useLocation();
+  const {open} = useAside();
   const [searchParams] = useSearchParams();
 
  // ---------- COLOR SWATCHES (shopify options) ----------
@@ -535,6 +541,11 @@ useEffect(() => {
           margin: 0 0 6px;
           text-align:center;
         }
+        .rvp-cardNameLink{
+          display:block;
+          color: inherit;
+          text-decoration: none;
+        }
         .rvp-cardPrice{
           font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
           font-weight: 900;
@@ -553,9 +564,13 @@ useEffect(() => {
           letter-spacing: .14em;
           text-transform: uppercase;
           transition: background 180ms ease;
-          cursor: default; /* read-only */
+          cursor: pointer;
         }
         .rvp-cardBtn:hover{ background: var(--rv-blue); }
+        .rvp-cardBtn:disabled{
+          opacity: .65;
+          cursor: not-allowed;
+        }
       `}</style>
 
       <div className="rvp-container">
@@ -690,15 +705,23 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* read-only neste commit */}
-              <button
-                type="button"
-                className="rvp-addBtn"
-                title="Cart ligado no próximo passo"
-                onClick={(e) => e.preventDefault()}
+              <AddToCartButton
+                buttonClassName="rvp-addBtn"
+                disabled={!selectedVariant.availableForSale}
+                lines={[
+                  {
+                    merchandiseId: selectedVariant.id,
+                    quantity: 1,
+                    selectedVariant,
+                  },
+                ]}
+                onClick={() => {
+                  open('cart');
+                  pushToast({message: 'Product added to your cart'});
+                }}
               >
                 ADD TO CART
-              </button>
+              </AddToCartButton>
             </div>
           </div>
         </div>
@@ -710,6 +733,13 @@ useEffect(() => {
           <div className="rvp-recoGrid">
             {(recommendations ?? []).slice(0, 4).map((r) => (
               <div key={r.id} className="rvp-card">
+                {(() => {
+                  const selectedVariant = r.selectedOrFirstAvailableVariant;
+                  const isAvailable = Boolean(selectedVariant?.availableForSale);
+                  const buttonText = isAvailable ? 'ADD TO CART' : 'SOLD OUT';
+
+                  return (
+                    <>
                 <div
                   className="rvp-cardImgWrap"
                   onClick={() => navigate(`/products/${r.handle}`)}
@@ -735,7 +765,12 @@ useEffect(() => {
                 </div>
 
                 <div style={{width: '100%'}}>
-                  <div className="rvp-cardName">{r.title}</div>
+                  <Link
+                    to={`/products/${r.handle}`}
+                    className="rvp-cardNameLink"
+                  >
+                    <div className="rvp-cardName">{r.title}</div>
+                  </Link>
                   <div className="rvp-cardPrice">
                     {formatMoney(
                       r.priceRange.minVariantPrice.amount,
@@ -743,16 +778,29 @@ useEffect(() => {
                     )}
                   </div>
 
-                  {/* read-only neste commit */}
                   <div style={{display: 'flex', justifyContent: 'center'}}>
-                    <button
-                      type="button"
-                      className="rvp-cardBtn"
-                      title="Cart ligado no próximo passo"
-                      onClick={(e) => e.preventDefault()}
+                    <AddToCartButton
+                      buttonAriaLabel={`${buttonText} ${r.title}`}
+                      buttonClassName="rvp-cardBtn"
+                      disabled={!selectedVariant || !isAvailable}
+                      lines={
+                        selectedVariant
+                          ? [
+                              {
+                                merchandiseId: selectedVariant.id,
+                                quantity: 1,
+                                selectedVariant,
+                              },
+                            ]
+                          : []
+                      }
+                      onClick={() => {
+                        open('cart');
+                        pushToast({message: 'Product added to your cart'});
+                      }}
                     >
-                      ADD TO CART
-                    </button>
+                      {buttonText}
+                    </AddToCartButton>
                   </div>
 
                   {/* opcional: link invisível para debug */}
@@ -760,6 +808,9 @@ useEffect(() => {
                     <Link to={`/products/${r.handle}`}>Open</Link>
                   </div>
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>

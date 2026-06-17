@@ -1,5 +1,6 @@
 import {useLoaderData} from 'react-router';
 import type {Route} from './+types/($locale).catalog';
+import type {CatalogProductsQuery} from 'storefrontapi.generated';
 import {RevissantCatalogPage} from '~/components/revissant/catalog';
 
 export const meta: Route.MetaFunction = () => {
@@ -22,6 +23,31 @@ const PRODUCT_CARD_FRAGMENT = `#graphql
       minVariantPrice {
         amount
         currencyCode
+      }
+    }
+    selectedOrFirstAvailableVariant {
+      id
+      availableForSale
+      title
+      price {
+        amount
+        currencyCode
+      }
+      image {
+        id
+        url
+        altText
+        width
+        height
+      }
+      product {
+        id
+        handle
+        title
+      }
+      selectedOptions {
+        name
+        value
       }
     }
   }
@@ -98,16 +124,19 @@ export async function loader({request, context}: Route.LoaderArgs) {
     },
   });
 
-  const products = result.products.nodes.map((p) => ({
-    id: p.id,
-    title: p.title,
-    handle: p.handle,
-    tags: p.tags ?? [],
-    image: p.featuredImage
-      ? {url: p.featuredImage.url, altText: p.featuredImage.altText ?? p.title}
-      : null,
-    minPrice: p.priceRange.minVariantPrice,
-  }));
+  const products = result.products.nodes.map(
+    (p: CatalogProductsQuery['products']['nodes'][number]) => ({
+      id: p.id,
+      title: p.title,
+      handle: p.handle,
+      tags: p.tags ?? [],
+      image: p.featuredImage
+        ? {url: p.featuredImage.url, altText: p.featuredImage.altText ?? p.title}
+        : null,
+      minPrice: p.priceRange.minVariantPrice,
+      selectedVariant: p.selectedOrFirstAvailableVariant,
+    }),
+  );
 
   return {
     products,
@@ -121,4 +150,3 @@ export default function CatalogRoute() {
   useLoaderData<typeof loader>();
   return <RevissantCatalogPage />;
 }
-

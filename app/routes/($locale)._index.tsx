@@ -1,5 +1,5 @@
 // app/routes/($locale)._index.tsx
-import type {Route} from './+types/_index';
+import type {Route} from './+types/($locale)._index';
 import {RevissantHome} from '~/components/revissant/home';
 
 export const meta: Route.MetaFunction = () => {

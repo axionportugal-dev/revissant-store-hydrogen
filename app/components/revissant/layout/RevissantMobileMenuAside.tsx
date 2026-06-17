@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react';
 import {Link} from 'react-router';
 import {useAside} from '~/components/Aside';
 import {useLockBodyScroll} from '~/components/revissant/hooks/useLockBodyScroll';
-import styles from './RevissantMobileMenu.module.css';
 
 const MENU_ITEMS: Array<{label: string; to: string}> = [
   {label: 'CATALOG', to: '/catalog'},
@@ -50,23 +49,30 @@ export function RevissantMobileMenuAside() {
 
   if (!isVisible) return null;
 
-  const backdropClass = isClosing ? styles.backdropOut : styles.backdropIn;
-  const drawerClass = isClosing ? styles.drawerOut : styles.drawerIn;
+  const stateClass =
+    open && !isClosing
+      ? 'revissant-mobile-menu--open'
+      : 'revissant-mobile-menu--closing';
 
   return (
-    <div className={styles.root} role="dialog" aria-modal="true">
-      {/* Backdrop (blur do ecrã todo) */}
+    <div
+      className={`revissant-mobile-menu ${stateClass}`}
+      role="dialog"
+      aria-modal="true"
+      aria-hidden={!open}
+    >
+      {/* Backdrop (blur do ecra todo) */}
       <button
-        className={`${styles.backdrop} ${backdropClass}`}
+        className="revissant-mobile-menu__backdrop"
         aria-label="Close menu"
         onClick={close}
       />
 
       {/* Drawer */}
-      <aside className={`${styles.drawer} ${drawerClass}`} aria-label="Menu">
-        {/* Close (no “lugar” do hamburger) */}
+      <aside className="revissant-mobile-menu__drawer" aria-label="Menu">
+        {/* Close (no lugar do hamburger) */}
         <button
-          className={styles.closeBtn}
+          className="revissant-mobile-menu__close-btn"
           onClick={close}
           aria-label="Close menu"
           type="button"
@@ -75,24 +81,28 @@ export function RevissantMobileMenuAside() {
         </button>
 
         {/* Vertical decorative text */}
-        <div className={styles.vertical}>REVISSANT COLLECTION ©2024</div>
+        <div className="revissant-mobile-menu__vertical">
+          REVISSANT COLLECTION ©2024
+        </div>
 
         {/* Nav */}
-        <nav className={styles.nav}>
-          <div className={styles.newRow}>
-            <div className={styles.new}>NEW</div>
+        <nav className="revissant-mobile-menu__nav">
+          <div className="revissant-mobile-menu__new-row">
+            <div className="revissant-mobile-menu__new">NEW</div>
           </div>
 
-          <div className={styles.links}>
+          <div className="revissant-mobile-menu__links">
             {MENU_ITEMS.map((item) => (
               <Link
                 key={item.label}
                 to={item.to}
-                className={styles.link}
+                className="revissant-mobile-menu__link"
                 onClick={close}
               >
-                <span className={styles.linkText}>{item.label}</span>
-                <span className={styles.arrow} aria-hidden="true">
+                <span className="revissant-mobile-menu__link-text">
+                  {item.label}
+                </span>
+                <span className="revissant-mobile-menu__arrow" aria-hidden="true">
                   →
                 </span>
               </Link>
@@ -101,7 +111,7 @@ export function RevissantMobileMenuAside() {
         </nav>
 
         {/* Depth overlay (igual ao AI Studio) */}
-        <div className={styles.depth} />
+        <div className="revissant-mobile-menu__depth" />
       </aside>
     </div>
   );
@@ -111,7 +121,7 @@ function CloseIcon() {
   // SVG para conseguirmos rodar no hover via CSS (igual ao AI Studio)
   return (
     <svg
-      className={styles.closeIcon}
+      className="revissant-mobile-menu__close-icon"
       width="26"
       height="26"
       viewBox="0 0 24 24"

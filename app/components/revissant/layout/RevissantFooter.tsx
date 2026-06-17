@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {Link, useParams} from 'react-router';
 import type {FooterQuery, HeaderQuery} from 'storefrontapi.generated';
+import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
 
 import ContactModal from '~/components/revissant/policies/ContactModal';
 import DeliveryModal from '~/components/revissant/policies/DeliveryModal';
@@ -18,7 +19,7 @@ type RevissantFooterProps = {
 
 export function RevissantFooter(_props: RevissantFooterProps) {
   const params = useParams();
-  const localePrefix = params?.locale ? `/${params.locale}` : '';
+  const localePrefix = getLocalePathPrefix(params?.locale);
 
   const [email, setEmail] = React.useState('');
   const [isSubmitted, setIsSubmitted] = React.useState(false);
