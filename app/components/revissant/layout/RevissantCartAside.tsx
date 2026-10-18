@@ -1,5 +1,5 @@
 import {Suspense, useEffect} from 'react';
-import {Await} from 'react-router';
+import {Await, Link, useParams} from 'react-router';
 import {
   CartForm,
   Image,
@@ -11,17 +11,26 @@ import type {CartApiQueryFragment} from 'storefrontapi.generated';
 
 import {useAside} from '~/components/Aside';
 import {useLockBodyScroll} from '~/components/revissant/hooks/useLockBodyScroll';
+import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
 import {
-  ShoppingBagIcon,
-  TrashIcon,
-  XIcon,
-} from '~/components/revissant/ui/icons';
+  formatPrice,
+  getConceptProduct,
+  BEST_SELLERS,
+  sized,
+} from '~/components/revissant/concept/catalog';
+import {
+  getConceptBagTotals,
+  updateConceptBagLine,
+  useConceptBag,
+} from '~/components/revissant/concept/bag';
 
 type CartLine = OptimisticCartLine<CartApiQueryFragment>;
 
 type RevissantCartAsideProps = {
   cart: Promise<CartApiQueryFragment | null>;
 };
+
+const FREE_SHIPPING_THRESHOLD = 250;
 
 export function RevissantCartAside({cart}: RevissantCartAsideProps) {
   const {type, close} = useAside();
@@ -31,25 +40,27 @@ export function RevissantCartAside({cart}: RevissantCartAsideProps) {
 
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
+    const onKeyDown = (event: KeyboardEvent) =>
+      event.key === 'Escape' && close();
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, close]);
 
   return (
-    <Suspense fallback={null}>
-      <Await resolve={cart}>
+    <Suspense fallback={<CartDrawer cart={null} open={open} onClose={close} />}>
+      <Await
+        resolve={cart}
+        errorElement={<CartDrawer cart={null} open={open} onClose={close} />}
+      >
         {(resolvedCart: CartApiQueryFragment | null) => (
-          <CartDrawerContent cart={resolvedCart} open={open} onClose={close} />
+          <CartDrawer cart={resolvedCart} open={open} onClose={close} />
         )}
       </Await>
     </Suspense>
   );
 }
 
-function CartDrawerContent({
+function CartDrawer({
   cart: originalCart,
   open,
   onClose,
@@ -59,191 +70,328 @@ function CartDrawerContent({
   onClose: () => void;
 }) {
   const cart = useOptimisticCart(originalCart);
-  const lines = (cart?.lines?.nodes ?? []) as CartLine[];
-  const hasItems = lines.length > 0;
-  const totalQuantity = cart?.totalQuantity ?? 0;
+  const conceptBag = useConceptBag();
+  const totalQuantity =
+    (cart?.totalQuantity ?? 0) + getConceptBagTotals(conceptBag).quantity;
 
   return (
     <>
-      {/* Backdrop */}
       <button
-        aria-label="Close cart"
+        type="button"
+        aria-label="Close bag"
+        tabIndex={open ? 0 : -1}
         onClick={onClose}
-        className={`fixed inset-0 bg-black/50 z-[110] transition-opacity ${
-          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-[110] bg-ink-deep/40 backdrop-blur-[2px] transition-opacity duration-500 ${
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
 
-      {/* Drawer */}
       <aside
         aria-hidden={!open}
-        className={`fixed top-0 right-0 h-full w-full max-w-full sm:w-[400px] bg-white z-[120] transform overflow-hidden transition-transform duration-300 ease-in-out shadow-2xl ${
-          open ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        aria-label="Shopping bag"
+        className={`fixed right-0 top-0 z-[120] flex h-full w-full flex-col bg-ivory text-ink shadow-2xl transition-transform duration-500 ease-[cubic-bezier(0.2,0.7,0.1,1)] sm:w-[440px] ${
+          open ? 'translate-x-0' : 'pointer-events-none translate-x-full'
         }`}
       >
-        <div className="p-6 flex justify-between items-center border-b border-gray-100 h-20">
-          <span className="font-sans font-bold text-xl tracking-widest text-revissant-dark flex items-center gap-2">
-            CART{' '}
-            <span className="text-sm font-sans bg-revissant-dark text-white rounded-none w-6 h-6 flex items-center justify-center">
-              {totalQuantity}
-            </span>
-          </span>
+        <div className="flex h-16 items-center justify-between border-b border-ink/10 px-6 md:h-[76px]">
+          <p className="rv-eyebrow">
+            Your bag <span className="ml-1 text-muted">({totalQuantity})</span>
+          </p>
           <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-none transition-colors"
-            aria-label="Close cart"
             type="button"
+            onClick={onClose}
+            aria-label="Close bag"
+            className="-mr-2 inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-60"
           >
-            <XIcon size={24} className="text-revissant-dark" />
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M5 5l14 14M19 5 5 19"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </div>
 
-        <div className="flex flex-col h-[calc(100%-5rem)] overflow-hidden">
-          {!hasItems ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-4">
-              <ShoppingBagIcon size={48} />
-              <p className="text-lg">Your cart is empty</p>
-              <button
-                onClick={onClose}
-                className="text-revissant-dark underline hover:text-blue-400"
-                type="button"
-              >
-                Start Shopping
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {lines.map((line) => {
-                  const merchandise = line.merchandise;
-                  const image = merchandise?.image;
-                  const productTitle = merchandise?.product?.title ?? 'Product';
-                  const colorLabel = getColorLabel(line);
-                  const quantity = line.quantity ?? 0;
-
-                  return (
-                    <div key={line.id} className="flex gap-4 min-w-0">
-                      {image ? (
-                        <Image
-                          data={image}
-                          alt={image.altText || productTitle}
-                          width={96}
-                          height={96}
-                          className="w-24 h-24 object-cover rounded-none bg-gray-100"
-                        />
-                      ) : (
-                        <div className="w-24 h-24 bg-gray-100" />
-                      )}
-
-                      <div className="flex-1 min-w-0 flex flex-col justify-between">
-                        <div>
-                          <h3 className="font-bold text-revissant-dark break-words">
-                            {productTitle}
-                          </h3>
-                          <p className="text-sm text-gray-500">{colorLabel}</p>
-                        </div>
-                        <div className="flex justify-between items-end">
-                          <CartLinePrice quantity={quantity} line={line} />
-                          <CartForm
-                            route="/cart"
-                            action={CartForm.ACTIONS.LinesRemove}
-                            inputs={{lineIds: [line.id]}}
-                          >
-                            <button
-                              type="submit"
-                              className="text-red-400 hover:text-red-600 p-1"
-                              aria-label="Remove item"
-                              disabled={Boolean(line.isOptimistic)}
-                            >
-                              <TrashIcon size={18} />
-                            </button>
-                          </CartForm>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="p-6 border-t border-gray-100 bg-gray-50">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="text-xl font-bold text-revissant-dark">
-                    {cart?.cost?.subtotalAmount ? (
-                      <Money data={cart.cost.subtotalAmount} />
-                    ) : (
-                      '-'
-                    )}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 mb-4 text-center">
-                  Shipping & taxes calculated at checkout
-                </p>
-                {cart?.checkoutUrl ? (
-                  <a
-                    href={cart.checkoutUrl}
-                    target="_self"
-                    className="block text-center w-full bg-revissant-dark text-white py-4 font-bold tracking-wider hover:bg-gray-800 transition-colors uppercase rounded-none"
-                  >
-                    Proceed to Checkout
-                  </a>
-                ) : (
-                  <button
-                    className="w-full bg-gray-300 text-gray-600 py-4 font-bold tracking-wider uppercase rounded-none cursor-not-allowed"
-                    disabled
-                  >
-                    Proceed to Checkout
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+        <BagContents cart={originalCart} onNavigate={onClose} />
       </aside>
     </>
   );
 }
 
-function getColorLabel(line: CartLine) {
-  const options = line.merchandise?.selectedOptions ?? [];
-  const color = options.find((option) =>
-    option.name.toLowerCase().includes('color'),
-  )?.value;
-  return color || options[0]?.value || 'Standard';
-}
-
-function CartLinePrice({
-  line,
-  quantity,
+/** Linhas + resumo do saco — usado no drawer e na página /cart. */
+export function BagContents({
+  cart: originalCart,
+  onNavigate,
 }: {
-  line: CartLine;
-  quantity: number;
+  cart: CartApiQueryFragment | null;
+  onNavigate?: () => void;
 }) {
-  const unitAmount = line.cost?.amountPerQuantity;
-  const totalAmount = line.cost?.totalAmount;
+  const {locale} = useParams();
+  const localePrefix = getLocalePathPrefix(locale);
+  const cart = useOptimisticCart(originalCart);
+  const lines = (cart?.lines?.nodes ?? []) as CartLine[];
 
-  if (!unitAmount) {
-    return <span className="font-medium text-revissant-dark">-</span>;
-  }
+  const conceptBag = useConceptBag();
+  const conceptTotals = getConceptBagTotals(conceptBag);
+  const hasItems = lines.length > 0 || conceptBag.length > 0;
 
-  if (quantity <= 1 || !totalAmount) {
-    return (
-      <span className="font-medium text-revissant-dark">
-        <Money data={totalAmount ?? unitAmount} />
-      </span>
-    );
-  }
+  const shopifySubtotal = Number(cart?.cost?.subtotalAmount?.amount ?? 0);
+  const subtotal = shopifySubtotal + conceptTotals.subtotal;
+  const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+  const progress = Math.min(1, subtotal / FREE_SHIPPING_THRESHOLD);
 
   return (
-    <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-revissant-dark">
-      <Money data={unitAmount} />
-      <span className="inline-flex items-center justify-center bg-revissant-dark px-2 py-0.5 text-xs font-bold tracking-wide text-white">
-        x{quantity}
-      </span>
-      <span className="text-gray-400">=</span>
-      <span className="font-bold">
-        <Money data={totalAmount} />
-      </span>
-    </span>
+    <>
+      {!hasItems ? (
+        <EmptyBag onClose={onNavigate} localePrefix={localePrefix} />
+      ) : (
+        <>
+          <div className="border-b border-ink/10 px-6 py-4">
+            <p className="text-[13px] text-muted">
+              {remaining > 0 ? (
+                <>
+                  You are{' '}
+                  <span className="text-ink">{formatPrice(remaining)}</span>{' '}
+                  away from complimentary delivery.
+                </>
+              ) : (
+                'Your order qualifies for complimentary delivery.'
+              )}
+            </p>
+            <div className="mt-3 h-px w-full bg-ink/10">
+              <div
+                className="h-px bg-bronze transition-[width] duration-700"
+                style={{width: `${progress * 100}%`}}
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+            {lines.map((line) => (
+              <ShopifyLine key={line.id} line={line} />
+            ))}
+
+            {conceptBag.map((line, index) => {
+              const product = getConceptProduct(line.handle);
+              if (!product) return null;
+              return (
+                <div
+                  key={`${line.handle}-${line.finish ?? ''}`}
+                  className="flex gap-4"
+                >
+                  <Link
+                    to={`${localePrefix}/products/${product.handle}`}
+                    onClick={onNavigate}
+                    className="block h-28 w-[88px] shrink-0 overflow-hidden bg-stone"
+                  >
+                    <img
+                      src={sized(product.image, 300)}
+                      alt={product.title}
+                      className="h-full w-full object-cover"
+                      style={{objectPosition: product.focus}}
+                    />
+                  </Link>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="rv-display text-xl">{product.title}</p>
+                        <p className="mt-0.5 text-[13px] text-muted">
+                          {line.finish ?? product.subtitle}
+                        </p>
+                      </div>
+                      <p className="text-[14px]">
+                        {formatPrice(product.price * line.quantity)}
+                      </p>
+                    </div>
+                    <div className="mt-auto flex items-center justify-between">
+                      <QuantityStepper
+                        value={line.quantity}
+                        onChange={(q) => updateConceptBagLine(index, q)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateConceptBagLine(index, 0)}
+                        className="text-[12px] text-muted underline-offset-4 hover:text-ink hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-ink/10 bg-stone/60 px-6 pb-6 pt-5">
+            <div className="flex items-baseline justify-between">
+              <span className="rv-eyebrow">Subtotal</span>
+              <span className="rv-display text-2xl">
+                {formatPrice(subtotal)}
+              </span>
+            </div>
+            <p className="mt-1 text-[12px] text-muted">
+              Taxes included. Delivery calculated at checkout.
+            </p>
+
+            {cart?.checkoutUrl &&
+            lines.length > 0 &&
+            conceptBag.length === 0 ? (
+              <a
+                href={cart.checkoutUrl}
+                target="_self"
+                className="rv-btn mt-5 w-full"
+              >
+                Checkout
+              </a>
+            ) : (
+              <>
+                <button type="button" disabled className="rv-btn mt-5 w-full">
+                  Checkout
+                </button>
+                <p className="mt-3 text-center text-[11px] leading-relaxed text-muted">
+                  Concept preview — checkout opens when the collection launches.
+                </p>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function EmptyBag({
+  onClose,
+  localePrefix,
+}: {
+  onClose?: () => void;
+  localePrefix: string;
+}) {
+  const suggestions = BEST_SELLERS.slice(0, 2);
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto px-6 py-10">
+      <p className="rv-display text-3xl">Your bag is empty.</p>
+      <p className="mt-3 text-[14px] leading-relaxed text-muted">
+        Begin with something quiet and beautiful.
+      </p>
+      <Link
+        to={`${localePrefix}/catalog`}
+        onClick={onClose}
+        className="rv-btn mt-8 self-start"
+      >
+        Explore the collection
+      </Link>
+
+      <p className="rv-eyebrow mt-14 text-muted">Most loved</p>
+      <div className="mt-5 grid grid-cols-2 gap-4">
+        {suggestions.map((p) => (
+          <Link
+            key={p.handle}
+            to={`${localePrefix}/products/${p.handle}`}
+            onClick={onClose}
+            className="group block"
+          >
+            <div className="aspect-[4/5] overflow-hidden bg-stone">
+              <img
+                src={sized(p.image, 500)}
+                alt={p.title}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                style={{objectPosition: p.focus}}
+              />
+            </div>
+            <p className="rv-display mt-3 text-lg">{p.title}</p>
+            <p className="text-[13px] text-muted">{formatPrice(p.price)}</p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuantityStepper({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="inline-flex items-center border border-ink/15">
+      <button
+        type="button"
+        aria-label="Decrease quantity"
+        onClick={() => onChange(value - 1)}
+        className="h-8 w-8 text-muted transition-colors hover:text-ink"
+      >
+        −
+      </button>
+      <span className="w-6 text-center text-[13px]">{value}</span>
+      <button
+        type="button"
+        aria-label="Increase quantity"
+        onClick={() => onChange(value + 1)}
+        className="h-8 w-8 text-muted transition-colors hover:text-ink"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+function ShopifyLine({line}: {line: CartLine}) {
+  const merchandise = line.merchandise;
+  const image = merchandise?.image;
+  const title = merchandise?.product?.title ?? 'Product';
+  const options = merchandise?.selectedOptions ?? [];
+  const variantLabel = options.map((o) => o.value).join(' · ') || 'Standard';
+
+  return (
+    <div className="flex gap-4">
+      {image ? (
+        <Image
+          data={image}
+          alt={image.altText || title}
+          width={88}
+          height={112}
+          className="h-28 w-[88px] shrink-0 bg-stone object-cover"
+        />
+      ) : (
+        <div className="h-28 w-[88px] shrink-0 bg-stone" />
+      )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="rv-display text-xl">{title}</p>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {variantLabel} · Qty {line.quantity}
+            </p>
+          </div>
+          {line.cost?.totalAmount ? (
+            <Money data={line.cost.totalAmount} className="text-[14px]" />
+          ) : null}
+        </div>
+        <CartForm
+          route="/cart"
+          action={CartForm.ACTIONS.LinesRemove}
+          inputs={{lineIds: [line.id]}}
+        >
+          <button
+            type="submit"
+            disabled={Boolean(line.isOptimistic)}
+            className="mt-3 text-[12px] text-muted underline-offset-4 hover:text-ink hover:underline"
+          >
+            Remove
+          </button>
+        </CartForm>
+      </div>
+    </div>
   );
 }

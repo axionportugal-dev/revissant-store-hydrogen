@@ -1,10 +1,15 @@
-import {useLoaderData} from 'react-router';
 import type {Route} from './+types/($locale).catalog';
 import type {CatalogProductsQuery} from 'storefrontapi.generated';
 import {RevissantCatalogPage} from '~/components/revissant/catalog';
+import {
+  CATEGORIES,
+  CONCEPT_PRODUCTS,
+  type ConceptCategory,
+  type ConceptProduct,
+} from '~/components/revissant/concept/catalog';
 
 export const meta: Route.MetaFunction = () => {
-  return [{title: 'Catalog | REVISSANT'}];
+  return [{title: 'The Collection | REVISSANT'}];
 };
 
 const PRODUCT_CARD_FRAGMENT = `#graphql
@@ -69,84 +74,73 @@ const CATALOG_PRODUCTS_QUERY = `#graphql
   ${PRODUCT_CARD_FRAGMENT}
 ` as const;
 
-function quoteTag(tag: string) {
-  // Tags agora já não têm espaços, mas isto evita bugs futuros
-  return tag.includes(' ') ? `"${tag}"` : tag;
-}
+export type CatalogSort = 'featured' | 'price-asc' | 'price-desc' | 'name';
+
+const PRICE_BANDS: Record<string, [number, number]> = {
+  'under-100': [0, 100],
+  '100-250': [100, 250],
+  '250-plus': [250, Number.POSITIVE_INFINITY],
+};
 
 export async function loader({request, context}: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const sp = url.searchParams;
+  const sp = new URL(request.url).searchParams;
+  const category = sp.get('category')?.trim() || null;
+  const price = sp.get('price')?.trim() || null;
+  const sort = (sp.get('sort')?.trim() || 'featured') as CatalogSort;
 
-  // tag única
-  const selectedTagRaw = sp.get('tag') ?? '';
-  const selectedTag = selectedTagRaw.trim() ? selectedTagRaw.trim() : null;
+  const result = await context.storefront
+    .query(CATALOG_PRODUCTS_QUERY, {variables: {first: 48, query: null}})
+    .catch((error: Error) => {
+      // Loja indisponível / API em baixo: usa o catálogo de conceito.
+      console.error(error);
+      return null;
+    });
 
-  // price range único (ex.: "0-20", "20-50", "100+")
-  const selectedPriceRangeRaw = sp.get('price') ?? '';
-  const selectedPriceRange = selectedPriceRangeRaw.trim()
-    ? selectedPriceRangeRaw.trim()
-    : null;
-
-  // map price range -> min/max
-  let minPrice: number | null = null;
-  let maxPrice: number | null = null;
-
-  if (selectedPriceRange) {
-    if (selectedPriceRange === '100+') {
-      minPrice = 100;
-      maxPrice = null;
-    } else {
-      const [minStr, maxStr] = selectedPriceRange.split('-');
-      const minNum = Number(minStr);
-      const maxNum = Number(maxStr);
-
-      if (Number.isFinite(minNum)) minPrice = minNum;
-      if (Number.isFinite(maxNum)) maxPrice = maxNum;
-    }
-  }
-
-  const queryParts: string[] = [];
-
-  if (selectedTag) {
-    queryParts.push(`tag:${quoteTag(selectedTag)}`);
-  }
-
-  if (Number.isFinite(minPrice)) queryParts.push(`variants.price:>=${minPrice}`);
-  if (Number.isFinite(maxPrice)) queryParts.push(`variants.price:<=${maxPrice}`);
-
-  const query = queryParts.length ? queryParts.join(' AND ') : null;
-
-  const result = await context.storefront.query(CATALOG_PRODUCTS_QUERY, {
-    variables: {
-      first: 48,
-      query,
-    },
-  });
-
-  const products = result.products.nodes.map(
+  const shopifyProducts: ConceptProduct[] = (result?.products.nodes ?? []).map(
     (p: CatalogProductsQuery['products']['nodes'][number]) => ({
-      id: p.id,
-      title: p.title,
       handle: p.handle,
-      tags: p.tags ?? [],
-      image: p.featuredImage
-        ? {url: p.featuredImage.url, altText: p.featuredImage.altText ?? p.title}
-        : null,
-      minPrice: p.priceRange.minVariantPrice,
-      selectedVariant: p.selectedOrFirstAvailableVariant,
+      title: p.title,
+      subtitle: p.selectedOrFirstAvailableVariant?.title ?? '',
+      category: (p.tags.find((t) => t.startsWith('cat-'))?.slice(4) ??
+        'objects') as ConceptCategory,
+      price: Number(p.priceRange.minVariantPrice.amount),
+      image: p.featuredImage?.url ?? '',
+      material: '',
+      dimensions: '',
+      description: '',
+      external: true,
     }),
   );
 
-  return {
-    products,
-    selectedTag,
-    selectedPriceRange,
-  };
+  const source = shopifyProducts.length ? 'shopify' : 'concept';
+  const all = shopifyProducts.length ? shopifyProducts : CONCEPT_PRODUCTS;
+
+  let products = all.filter((p) => {
+    if (category && p.category !== category) return false;
+    if (price && PRICE_BANDS[price]) {
+      const [min, max] = PRICE_BANDS[price];
+      if (p.price < min || p.price >= max) return false;
+    }
+    return true;
+  });
+
+  if (sort === 'price-asc')
+    products = [...products].sort((a, b) => a.price - b.price);
+  if (sort === 'price-desc')
+    products = [...products].sort((a, b) => b.price - a.price);
+  if (sort === 'name')
+    products = [...products].sort((a, b) => a.title.localeCompare(b.title));
+
+  const counts = Object.fromEntries(
+    CATEGORIES.map((c) => [
+      c.value,
+      all.filter((p) => p.category === c.value).length,
+    ]),
+  ) as Record<ConceptCategory, number>;
+
+  return {products, total: all.length, counts, category, price, sort, source};
 }
 
 export default function CatalogRoute() {
-  // só para garantir type-check (e evitar warning de “unused loader” em alguns setups)
-  useLoaderData<typeof loader>();
   return <RevissantCatalogPage />;
 }

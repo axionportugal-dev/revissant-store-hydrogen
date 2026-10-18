@@ -3,140 +3,189 @@ import {Link, useParams} from 'react-router';
 import {useAside} from '~/components/Aside';
 import {useLockBodyScroll} from '~/components/revissant/hooks/useLockBodyScroll';
 import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
+import {CATEGORIES, EDITORIAL} from '~/components/revissant/concept/catalog';
 
-const MENU_ITEMS: Array<{label: string; to: string}> = [
-  {label: 'CATALOG', to: '/catalog'},
-  {label: 'BEST DEALS', to: '/catalog'},
+const SECONDARY = [
   {label: 'FAQ', to: '/faq'},
+  {label: 'Bag', to: '/cart'},
 ];
+
+const ANIMATION_MS = 600;
 
 export function RevissantMobileMenuAside() {
   const {locale} = useParams();
   const {type, close} = useAside();
   const open = type === 'mobile';
-  const [isVisible, setIsVisible] = useState(open);
-  const [isClosing, setIsClosing] = useState(false);
   const localePrefix = getLocalePathPrefix(locale);
 
-  const animationMs = 500;
+  // Mantém montado durante a animação de saída
+  const [mounted, setMounted] = useState(open);
+  const [shown, setShown] = useState(false);
 
-  useLockBodyScroll(open || isClosing);
+  useLockBodyScroll(open);
 
-  // ESC fecha (mesmo sem foco)
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const raf = requestAnimationFrame(() => setShown(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setShown(false);
+    const t = window.setTimeout(() => setMounted(false), ANIMATION_MS);
+    return () => window.clearTimeout(t);
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
-    };
+    const onKeyDown = (e: KeyboardEvent) => e.key === 'Escape' && close();
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, close]);
 
-  useEffect(() => {
-    if (open) {
-      setIsVisible(true);
-      setIsClosing(false);
-      return;
-    }
-
-    if (isVisible) {
-      setIsClosing(true);
-      const timer = window.setTimeout(() => {
-        setIsVisible(false);
-        setIsClosing(false);
-      }, animationMs);
-
-      return () => window.clearTimeout(timer);
-    }
-  }, [open, isVisible, animationMs]);
-
-  if (!isVisible) return null;
-
-  const stateClass =
-    open && !isClosing
-      ? 'revissant-mobile-menu--open'
-      : 'revissant-mobile-menu--closing';
+  if (!mounted) return null;
 
   return (
     <div
-      className={`revissant-mobile-menu ${stateClass}`}
+      className="fixed inset-0 z-[200]"
       role="dialog"
       aria-modal="true"
-      aria-hidden={!open}
+      aria-label="Menu"
     >
-      {/* Backdrop (blur do ecra todo) */}
       <button
-        className="revissant-mobile-menu__backdrop"
+        type="button"
         aria-label="Close menu"
         onClick={close}
+        className={`absolute inset-0 bg-ink-deep/50 backdrop-blur-sm transition-opacity duration-500 ${
+          shown ? 'opacity-100' : 'opacity-0'
+        }`}
       />
 
-      {/* Drawer */}
-      <aside className="revissant-mobile-menu__drawer" aria-label="Menu">
-        {/* Close (no lugar do hamburger) */}
-        <button
-          className="revissant-mobile-menu__close-btn"
-          onClick={close}
-          aria-label="Close menu"
-          type="button"
-        >
-          <CloseIcon />
-        </button>
-
-        {/* Vertical decorative text */}
-        <div className="revissant-mobile-menu__vertical">
-          REVISSANT COLLECTION ©2024
-        </div>
-
-        {/* Nav */}
-        <nav className="revissant-mobile-menu__nav">
-          <div className="revissant-mobile-menu__new-row">
-            <div className="revissant-mobile-menu__new">NEW</div>
+      <aside
+        className={`absolute inset-y-0 left-0 flex w-full max-w-[980px] overflow-hidden bg-ink text-ivory shadow-2xl transition-transform duration-[600ms] ease-[cubic-bezier(0.2,0.7,0.1,1)] ${
+          shown ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex min-w-0 flex-1 flex-col overflow-y-auto px-6 pb-10 pt-5 md:px-14 md:pt-8">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={close}
+              aria-label="Close menu"
+              className="-ml-2 inline-flex h-10 w-10 items-center justify-center transition-opacity hover:opacity-60"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5 5l14 14M19 5 5 19"
+                  stroke="currentColor"
+                  strokeWidth="1.25"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <img
+              src="/brand/revissant-white.png"
+              alt="REVISSANT"
+              className="h-[14px] w-auto opacity-90"
+              draggable={false}
+            />
           </div>
 
-          <div className="revissant-mobile-menu__links">
-            {MENU_ITEMS.map((item) => (
+          <p className="rv-eyebrow mt-14 text-sand/80">The collection</p>
+
+          <nav className="mt-6 flex flex-col" aria-label="Menu">
+            <MenuLink
+              to={`${localePrefix}/catalog`}
+              onClick={close}
+              index={0}
+              shown={shown}
+            >
+              Shop all
+            </MenuLink>
+            {CATEGORIES.map((c, i) => (
+              <MenuLink
+                key={c.value}
+                to={`${localePrefix}/catalog?category=${c.value}`}
+                onClick={close}
+                index={i + 1}
+                shown={shown}
+              >
+                {c.label}
+              </MenuLink>
+            ))}
+          </nav>
+
+          <div className="mt-auto flex flex-wrap gap-x-8 gap-y-3 pt-14">
+            {SECONDARY.map((item) => (
               <Link
                 key={item.label}
                 to={`${localePrefix}${item.to}`}
-                className="revissant-mobile-menu__link"
                 onClick={close}
+                className="rv-eyebrow text-ivory/70 transition-colors hover:text-ivory"
               >
-                <span className="revissant-mobile-menu__link-text">
-                  {item.label}
-                </span>
-                <span className="revissant-mobile-menu__arrow" aria-hidden="true">
-                  →
-                </span>
+                {item.label}
               </Link>
             ))}
+            <span className="rv-eyebrow text-ivory/40">Portugal · EUR</span>
           </div>
-        </nav>
+        </div>
 
-        {/* Depth overlay (igual ao AI Studio) */}
-        <div className="revissant-mobile-menu__depth" />
+        {/* Imagem editorial (só desktop) */}
+        <div className="relative hidden w-[42%] shrink-0 md:block">
+          <img
+            src={EDITORIAL.manifesto}
+            alt=""
+            className={`absolute inset-0 h-full w-full object-cover transition-transform duration-[1400ms] ease-out ${
+              shown ? 'scale-100' : 'scale-110'
+            }`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
+          <div className="absolute inset-x-8 bottom-10">
+            <p className="rv-eyebrow text-sand">New season</p>
+            <p className="rv-display mt-3 text-3xl text-ivory">
+              Quiet forms for <em>considered</em> rooms.
+            </p>
+          </div>
+        </div>
       </aside>
     </div>
   );
 }
 
-function CloseIcon() {
-  // SVG para conseguirmos rodar no hover via CSS (igual ao AI Studio)
+function MenuLink({
+  to,
+  onClick,
+  children,
+  index,
+  shown,
+}: {
+  to: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  index: number;
+  shown: boolean;
+}) {
   return (
-    <svg
-      className="revissant-mobile-menu__close-icon"
-      width="26"
-      height="26"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
+    <Link
+      to={to}
+      onClick={onClick}
+      prefetch="intent"
+      className={`group flex items-baseline justify-between border-b border-ivory/10 py-3 transition-all duration-700 ${
+        shown ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'
+      }`}
+      style={{transitionDelay: shown ? `${120 + index * 45}ms` : '0ms'}}
     >
-      <path
-        d="M6 6l12 12M18 6L6 18"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-    </svg>
+      <span className="rv-display text-[34px] text-ivory transition-[letter-spacing,color] duration-500 group-hover:text-sand md:text-[44px]">
+        {children}
+      </span>
+      <span className="rv-eyebrow text-ivory/30 transition-colors group-hover:text-sand">
+        0{index + 1}
+      </span>
+    </Link>
   );
 }

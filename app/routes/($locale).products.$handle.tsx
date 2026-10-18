@@ -5,6 +5,8 @@ import type {
   ProductRecommendationsQuery,
 } from 'storefrontapi.generated';
 import {RevissantProductPage} from '~/components/revissant/product';
+import {ConceptProductPage} from '~/components/revissant/concept/ConceptProductPage';
+import {getConceptProduct} from '~/components/revissant/concept/catalog';
 
 import {
   getSelectedProductOptions,
@@ -21,25 +23,32 @@ type RecommendedProduct = NonNullable<
 >;
 type FallbackProduct = FallbackProductsQuery['products']['nodes'][number];
 
-
 export const meta: Route.MetaFunction = ({data}) => {
+  const title = data?.concept?.title ?? data?.product?.title ?? '';
+  const handle = data?.concept?.handle ?? data?.product?.handle ?? '';
   return [
-    {title: `Hydrogen | ${data?.product.title ?? ''}`},
-    {
-      rel: 'canonical',
-      href: `/products/${data?.product.handle}`,
-    },
+    {title: `${title} | REVISSANT`},
+    {name: 'description', content: data?.concept?.description ?? ''},
+    {rel: 'canonical', href: `/products/${handle}`},
   ];
 };
 
 export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+  const concept = getConceptProduct(args.params.handle ?? '');
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
+  try {
+    // Start fetching non-critical data without blocking time to first byte
+    const deferredData = loadDeferredData(args);
 
-  return {...deferredData, ...criticalData};
+    // Await the critical data required to render initial state of the page
+    const criticalData = await loadCriticalData(args);
+
+    return {...deferredData, ...criticalData, concept: null};
+  } catch (error) {
+    // Produto de conceito (não existe na Shopify ou a loja está indisponível)
+    if (concept) return {product: null, recommendations: [], concept};
+    throw error;
+  }
 }
 
 /**
@@ -70,9 +79,9 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
     variables: {productId: product.id},
   });
 
-  let recommendations = (
-    recoData?.productRecommendations ?? []
-  ).filter(Boolean) as RecommendedProduct[];
+  let recommendations = (recoData?.productRecommendations ?? []).filter(
+    Boolean,
+  ) as RecommendedProduct[];
 
   // Fallback C: se não houver recomendações da Shopify ainda
   if (recommendations.length === 0) {
@@ -86,8 +95,8 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
     const fallbackQuery = catTag
       ? `tag:${q(catTag)}`
       : product.productType
-      ? `product_type:${q(product.productType)}`
-      : '';
+        ? `product_type:${q(product.productType)}`
+        : '';
 
     if (fallbackQuery) {
       const fbData = await storefront.query(FALLBACK_PRODUCTS_QUERY, {
@@ -108,7 +117,6 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
     // se já há recomendações reais, corta para 4
     recommendations = recommendations.slice(0, 4);
   }
-
 
   // The API handle might be localized, so redirect to the localized handle
   redirectIfHandleIsLocalized(request, {handle, data: product});
@@ -132,8 +140,28 @@ function loadDeferredData({context, params}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product, recommendations} = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
 
+  if (data.concept) return <ConceptProductPage product={data.concept} />;
+  if (!data.product) return null;
+
+  return (
+    <ShopifyProduct
+      product={data.product}
+      recommendations={data.recommendations ?? []}
+    />
+  );
+}
+
+function ShopifyProduct({
+  product,
+  recommendations,
+}: {
+  product: NonNullable<Awaited<ReturnType<typeof loadCriticalData>>['product']>;
+  recommendations: Awaited<
+    ReturnType<typeof loadCriticalData>
+  >['recommendations'];
+}) {
   const selectedVariant = useOptimisticVariant(
     product.selectedOrFirstAvailableVariant,
     getAdjacentAndFirstAvailableVariants(product),
@@ -167,7 +195,6 @@ export default function Product() {
     </>
   );
 }
-
 
 const PRODUCT_VARIANT_FRAGMENT = `#graphql
   fragment ProductVariant on ProductVariant {
@@ -320,7 +347,6 @@ const RECOMMENDATIONS_QUERY = `#graphql
     }
   }
 ` as const;
-
 
 const FALLBACK_PRODUCTS_QUERY = `#graphql
   query FallbackProducts(

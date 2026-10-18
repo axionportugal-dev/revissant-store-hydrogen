@@ -1,290 +1,102 @@
-import {useMemo, useState} from 'react';
+import {useRef} from 'react';
 import {Link, useParams} from 'react-router';
 import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
+import {BEST_SELLERS} from '~/components/revissant/concept/catalog';
+import {ProductCard} from '~/components/revissant/concept/ProductCard';
+import {useReveal} from '~/components/revissant/hooks/useReveal';
 
-type BestSellerProduct = {
-  id: string;
-  title: string;
-  handle: string;
-  featuredImage?: {
-    url: string;
-    altText?: string | null;
-    width?: number | null;
-    height?: number | null;
-  } | null;
-  priceRange?: {
-    minVariantPrice?: {
-      amount: string;
-      currencyCode: string;
-    } | null;
-  } | null;
-};
-
-type BestSellersProps = {
-  products: BestSellerProduct[];
-};
-
-function StarIcon({size = 20, className}: {size?: number; className?: string}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M12 2l2.9 6.1 6.7.9-4.9 4.7 1.2 6.6L12 17l-5.9 3.3 1.2-6.6L2.4 9l6.7-.9L12 2z" />
-    </svg>
-  );
-}
-
-function ChevronLeftIcon({
-  size = 40,
-  className,
-}: {
-  size?: number;
-  className?: string;
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="m15 6-6 6 6 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronRightIcon({
-  size = 40,
-  className,
-}: {
-  size?: number;
-  className?: string;
-}) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="m9 6 6 6-6 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function formatMoney(amount?: string, currency?: string) {
-  if (!amount || !currency) return '';
-  const n = Number(amount);
-  if (Number.isNaN(n)) return `${amount} ${currency}`;
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(n);
-  } catch {
-    return `${n.toFixed(2)} ${currency}`;
-  }
-}
-
-export function BestSellers({products}: BestSellersProps) {
+/**
+ * "Most loved" — carrossel horizontal com scroll-snap (swipe no mobile,
+ * setas no desktop).
+ */
+export function BestSellers() {
   const {locale} = useParams();
   const localePrefix = getLocalePathPrefix(locale);
-  const carouselProducts = useMemo(
-    () => products?.filter(Boolean) ?? [],
-    [products],
-  );
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const ref = useReveal<HTMLElement>();
 
-  const total = carouselProducts.length;
-
-  const nextSlide = () => {
-    if (!total) return;
-    setCurrentIndex((prev) => (prev + 1) % total);
-  };
-
-  const prevSlide = () => {
-    if (!total) return;
-    setCurrentIndex((prev) => (prev - 1 + total) % total);
-  };
+  function scrollBy(dir: 1 | -1) {
+    const track = trackRef.current;
+    if (!track) return;
+    const card = track.querySelector<HTMLElement>('[data-card]');
+    const step = card ? card.offsetWidth + 24 : track.clientWidth * 0.8;
+    track.scrollBy({left: dir * step, behavior: 'smooth'});
+  }
 
   return (
-    <section className="relative py-20 overflow-hidden bg-white">
-      {/* Animated Background Blob */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-blue-50/50 rounded-full blur-3xl animate-subtle-pulse" />
-        <div className="absolute -bottom-20 -left-20 w-[400px] h-[400px] bg-[#C4A484]/10 rounded-full blur-3xl animate-subtle-pulse delay-700" />
-      </div>
-
-      <div className="container mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center gap-4 md:gap-12">
-        {/* Left Title */}
-        <div className="w-full md:w-1/3 pl-4 md:pl-12 mb-8 md:mb-0 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 mb-2 text-emerald-500">
-            <StarIcon size={20} />
-            <span className="font-bold text-sm">Trustpilot</span>
+    <section ref={ref} className="overflow-hidden bg-stone py-24 md:py-32">
+      <div className="rv-container">
+        <div className="rv-reveal flex items-end justify-between gap-6">
+          <div>
+            <p className="rv-eyebrow text-bronze">Most loved</p>
+            <h2 className="rv-display mt-5 text-[44px] text-ink md:text-[64px]">
+              The edit
+            </h2>
           </div>
-          <h2 className="font-bold text-5xl md:text-7xl text-[#0F2445] leading-tight tracking-tight">
-            BEST<br />
-            SELLERS
-          </h2>
-          <span className="font-serif text-xl tracking-[0.3em] text-[#0F2445] mt-4 block">
-            REVISSANT
-          </span>
-        </div>
-
-        {/* Carousel Area */}
-        <div className="w-full md:w-2/3 flex items-center justify-center gap-2 md:gap-4 select-none relative h-[450px]">
-          <button
-            onClick={prevSlide}
-            className="absolute left-0 md:relative z-40 p-2 text-[#0F2445] hover:bg-[#0F2445] hover:text-white transition-colors bg-white/80 rounded-none md:bg-transparent shadow-md md:shadow-none"
-            aria-label="Previous Product"
-            type="button"
-          >
-            <ChevronLeftIcon />
-          </button>
-
-          <div className="relative h-full w-full max-w-[800px] flex items-center justify-center [perspective:1000px]">
-            {carouselProducts.map((product, index) => {
-              const total = carouselProducts.length;
-              let offset = (index - currentIndex + total) % total;
-              if (offset > total / 2) offset -= total;
-
-              let containerClasses =
-                'absolute transform transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-2xl overflow-hidden shadow-2xl bg-white border border-gray-100 group';
-
-              if (offset === 0) {
-                containerClasses +=
-                  ' z-30 scale-100 opacity-100 translate-x-0 w-[280px] h-[400px] md:w-[320px] md:h-[420px]';
-              } else if (offset === -1) {
-                containerClasses +=
-                  ' z-20 scale-90 opacity-40 -translate-x-[60%] md:-translate-x-[260px] w-[280px] h-[400px] blur-[1px] grayscale cursor-pointer';
-              } else if (offset === 1) {
-                containerClasses +=
-                  ' z-20 scale-90 opacity-40 translate-x-[60%] md:translate-x-[260px] w-[280px] h-[400px] blur-[1px] grayscale cursor-pointer';
-              } else if (offset < -1) {
-                containerClasses +=
-                  ' z-10 scale-75 opacity-0 -translate-x-[120%] md:-translate-x-[450px] w-[280px] h-[400px] pointer-events-none';
-              } else {
-                containerClasses +=
-                  ' z-10 scale-75 opacity-0 translate-x-[120%] md:translate-x-[450px] w-[280px] h-[400px] pointer-events-none';
-              }
-
-              const imgUrl = product.featuredImage?.url;
-              const imgAlt = product.featuredImage?.altText || product.title;
-
-              const price = formatMoney(
-                product.priceRange?.minVariantPrice?.amount,
-                product.priceRange?.minVariantPrice?.currencyCode,
-              );
-
-              if (offset === 0) {
-                return (
-                  <Link
-                    key={product.id}
-                    to={`${localePrefix}/products/${product.handle}`}
-                    prefetch="intent"
-                    className={containerClasses}
-                    aria-label={`Open ${product.title}`}
-                  >
-                    {imgUrl ? (
-                      <img
-                        src={imgUrl}
-                        alt={imgAlt}
-                        className="w-full h-full object-cover"
-                        draggable={false}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-100" />
-                    )}
-                    <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end h-1/2">
-                      <h3 className="text-3xl font-bold uppercase leading-none font-sans tracking-[0.25em] mb-3 drop-shadow-lg">
-                        {product.title}
-                      </h3>
-                      <p className="text-xl font-bold font-sans text-blue-200 tracking-widest drop-shadow-md">
-                        {price}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              }
-
-              return (
-                <div
-                  key={product.id}
-                  className={containerClasses}
-                  onClick={() => {
-                    if (offset === -1) prevSlide();
-                    else if (offset === 1) nextSlide();
-                    else setCurrentIndex(index);
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      if (offset === -1) prevSlide();
-                      else if (offset === 1) nextSlide();
-                      else setCurrentIndex(index);
-                    }
-                  }}
-                  aria-label={`Select ${product.title}`}
-                >
-                  {imgUrl ? (
-                    <img
-                      src={imgUrl}
-                      alt={imgAlt}
-                      className="w-full h-full object-cover"
-                      draggable={false}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-100" />
-                  )}
-                </div>
-              );
-            })}
+          <div className="hidden items-center gap-2 md:flex">
+            <ArrowButton label="Previous" onClick={() => scrollBy(-1)} flip />
+            <ArrowButton label="Next" onClick={() => scrollBy(1)} />
           </div>
-
-          <button
-            onClick={nextSlide}
-            className="absolute right-0 md:relative z-40 p-2 text-[#0F2445] hover:bg-[#0F2445] hover:text-white transition-colors bg-white/80 rounded-none md:bg-transparent shadow-md md:shadow-none"
-            aria-label="Next Product"
-            type="button"
-          >
-            <ChevronRightIcon />
-          </button>
         </div>
       </div>
 
-      <div className="w-full text-right px-12 mt-8 relative z-20 hidden md:block">
-        <Link
-          to={`${localePrefix}/catalog`}
-          prefetch="intent"
-          className="text-[#0F2445] font-bold text-xl uppercase tracking-widest hover:text-blue-400 transition-colors border-b-2 border-transparent hover:border-blue-400 inline-block pb-1"
-        >
-          View All
+      <div
+        ref={trackRef}
+        className="no-scrollbar rv-reveal mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-px-5 px-5 md:mt-16 md:scroll-px-12 md:px-12"
+      >
+        {BEST_SELLERS.map((p, i) => (
+          <div
+            key={p.handle}
+            data-card
+            className="w-[76vw] shrink-0 snap-start sm:w-[44vw] lg:w-[calc((100vw-96px-72px)/4)] lg:max-w-[340px]"
+          >
+            <ProductCard product={p} priority={i < 2} />
+          </div>
+        ))}
+        <div className="w-px shrink-0" aria-hidden="true" />
+      </div>
+
+      <div className="rv-container mt-12 md:hidden">
+        <Link to={`${localePrefix}/catalog`} className="rv-link text-ink">
+          Shop all pieces
         </Link>
       </div>
     </section>
+  );
+}
+
+function ArrowButton({
+  label,
+  onClick,
+  flip = false,
+}: {
+  label: string;
+  onClick: () => void;
+  flip?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-ink/20 text-ink transition-colors hover:border-ink hover:bg-ink hover:text-ivory"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        className={flip ? 'rotate-180' : ''}
+      >
+        <path
+          d="M4 12h15m-5-5 5 5-5 5"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   );
 }

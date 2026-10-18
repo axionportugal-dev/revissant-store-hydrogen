@@ -1,9 +1,13 @@
 // app/components/revissant/home/RevissantHome.tsx
 import {useEffect, useState} from 'react';
 import {WelcomeScreen} from './WelcomeScreen';
-import {NewsletterPopup} from './NewsletterPopup';
 import {Hero} from './Hero';
+import {Marquee} from './Marquee';
+import {CategoryGrid} from './CategoryGrid';
 import {BestSellers} from './BestSellers';
+import {Manifesto} from './Manifesto';
+import {Craft} from './Craft';
+import {Rituals} from './Rituals';
 import Features from './Features';
 
 export type BestSellerProduct = {
@@ -24,13 +28,9 @@ export type BestSellerProduct = {
   } | null;
 };
 
-type RevissantHomeProps = {
-  bestSellers?: BestSellerProduct[];
-};
-
 const WELCOME_SESSION_KEY = 'revissant:welcome-seen';
 
-export function RevissantHome({bestSellers = []}: RevissantHomeProps) {
+export function RevissantHome() {
   const [shouldShowWelcome, setShouldShowWelcome] = useState(false);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function RevissantHome({bestSellers = []}: RevissantHomeProps) {
         window.sessionStorage.getItem(WELCOME_SESSION_KEY) !== 'true',
       );
     } catch {
-      setShouldShowWelcome(true);
+      setShouldShowWelcome(false);
     }
   }, []);
 
@@ -53,17 +53,19 @@ export function RevissantHome({bestSellers = []}: RevissantHomeProps) {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-[#0F2445]">
+    <div className="flex flex-col bg-ivory">
       {shouldShowWelcome ? (
         <WelcomeScreen onFinished={handleWelcomeFinished} />
       ) : null}
 
-      <NewsletterPopup />
-
-      {/* Home sections */}
       <Hero />
-      <BestSellers products={bestSellers} />
+      <Marquee />
+      <CategoryGrid />
+      <BestSellers />
+      <Manifesto />
+      <Craft />
+      <Rituals />
       <Features />
-    </main>
+    </div>
   );
 }

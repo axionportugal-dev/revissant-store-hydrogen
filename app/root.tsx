@@ -17,6 +17,7 @@ import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
 import tailwindCss from './styles/tailwind.css?url';
 import {PageLayout} from './components/PageLayout';
+import type {HeaderQuery} from 'storefrontapi.generated';
 
 export type RootLoader = typeof loader;
 
@@ -73,7 +74,7 @@ export function links() {
     },
     {
       rel: 'stylesheet',
-      href: 'https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap',
+      href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap',
     },
     {rel: 'icon', type: 'image/svg+xml', href: favicon},
   ];
@@ -107,6 +108,17 @@ export async function loader(args: Route.LoaderArgs) {
   };
 }
 
+const FALLBACK_HEADER = {
+  shop: {
+    id: 'gid://shopify/Shop/fallback',
+    name: 'REVISSANT',
+    description: null,
+    primaryDomain: {url: ''},
+    brand: null,
+  },
+  menu: null,
+} as unknown as HeaderQuery;
+
 /**
  * Load data necessary for rendering content above the fold. This is the critical data
  * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
@@ -115,12 +127,19 @@ async function loadCriticalData({context}: Route.LoaderArgs) {
   const {storefront} = context;
 
   const [header] = await Promise.all([
-    storefront.query(HEADER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-      },
-    }),
+    storefront
+      .query(HEADER_QUERY, {
+        cache: storefront.CacheLong(),
+        variables: {
+          headerMenuHandle: 'main-menu', // Adjust to your header menu handle
+        },
+      })
+      .catch((error: Error) => {
+        // Se a Storefront API falhar (ex.: loja indisponível), a UI Revissant
+        // continua a renderizar com um header mínimo.
+        console.error(error);
+        return FALLBACK_HEADER;
+      }),
     // Add other queries here, so that they are loaded in parallel
   ]);
 

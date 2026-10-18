@@ -1,122 +1,110 @@
-// app/components/revissant/home/Hero.tsx
 import {useEffect, useState} from 'react';
-import {Link, useLocation} from 'react-router';
+import {Link, useParams} from 'react-router';
+import {getLocalePathPrefix} from '~/components/revissant/utils/getLocalePathPrefix';
+import {EDITORIAL} from '~/components/revissant/concept/catalog';
 
-const CATALOG_SEGMENT = 'catalog';
-
-function getLocalePrefixedPath(pathname: string, segment: string) {
-  const match = /(\/[a-zA-Z]{2}-[a-zA-Z]{2}\/)/g.exec(pathname);
-  const base = match && match.length > 0 ? match[0] : '/';
-  return base === '/' ? `/${segment}` : `${base}${segment}`;
-}
-
+/**
+ * Hero — vídeo "A New Dawn of Living" (AI Studio) em ecrã inteiro,
+ * com o logotipo branco por cima. Parallax leve no scroll.
+ */
 export function Hero() {
-  const {pathname} = useLocation();
-
-  const [isScrolled, setIsScrolled] = useState(false);
+  const {locale} = useParams();
+  const localePrefix = getLocalePathPrefix(locale);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, {passive: true});
-    return () => window.removeEventListener('scroll', handleScroll);
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setScrollY(window.scrollY));
+    };
+    window.addEventListener('scroll', onScroll, {passive: true});
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
-  const toCatalog = getLocalePrefixedPath(pathname, CATALOG_SEGMENT);
+  const fade = Math.max(0, 1 - scrollY / 520);
 
   return (
-    <section
-      className="relative w-screen overflow-hidden left-1/2 -translate-x-1/2"
-      style={{
-        backgroundColor: '#0F2445',
-        // Mantém o logo alinhado com a WelcomeScreen sem mexer no botão EXPLORE.
-        marginTop: 'calc(var(--header-height) * -0.55)',
-        // Evita que o início da secção seguinte (branca) apareça no fundo do viewport.
-        // O dobro do offset mantém o conteúdo no mesmo sítio visual.
-        height: 'calc(100vh + (var(--header-height) * 1.1))',
-      }}
-    >
-      {/* Content layer */}
+    <section className="relative h-[100svh] min-h-[620px] w-full overflow-hidden bg-ink-deep text-white">
       <div
-        className="absolute inset-0 z-20"
+        className="absolute inset-0"
         style={{
-          // Mantém o conteúdo (logo + botão) exatamente na mesma posição visual de antes.
-          transform: 'translateY(calc(var(--header-height) * -0.55))',
+          transform: `translate3d(0, ${scrollY * 0.25}px, 0) scale(1.06)`,
         }}
       >
-        <div
-          className={[
-            'relative h-full w-full flex flex-col items-center justify-center text-center px-4',
-            'transition-all duration-700 ease-out transform-gpu',
-            isScrolled ? 'opacity-0 -translate-y-10 blur-sm' : 'opacity-100 translate-y-0 blur-0',
-          ].join(' ')}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster={EDITORIAL.heroPoster}
+          className="h-full w-full object-cover animate-rv-fade"
         >
-          {/* Main Hero Logo (usar logotipo) */}
-          <img
-            src="/logowhite.png"
-            alt="Revissant"
-            draggable={false}
-            className="w-[430px] sm:w-[560px] md:w-[700px] max-w-[92vw] h-auto select-none animate-fade-in"
-            style={{
-              marginTop: 'clamp(4px, 0.8vw, 10px)',
-              // `animate-fade-in` também anima `transform`; usa `top` para o ajuste fino.
-              position: 'relative',
-              top: 'clamp(28px, 7vw, 65px)',
-            }}
-          />
+          <source src={EDITORIAL.heroVideo} type="video/mp4" />
+        </video>
+      </div>
 
-          {/* Botão */}
+      {/* véus: navy da marca + vinheta para legibilidade */}
+      <div className="absolute inset-0 bg-ink-deep/45" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,24,48,0.55)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-deep/70 to-transparent" />
+
+      <div
+        className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
+        style={{opacity: fade, transform: `translateY(${scrollY * -0.12}px)`}}
+      >
+        <p className="rv-eyebrow animate-rv-rise text-sand [animation-delay:200ms]">
+          Maison of objects · Est. Portugal
+        </p>
+
+        <h1 className="mt-8 w-full max-w-[880px] animate-rv-rise [animation-delay:350ms]">
+          <img
+            src="/brand/revissant-white.png"
+            alt="REVISSANT"
+            width={1580}
+            height={190}
+            draggable={false}
+            className="mx-auto h-auto w-[86vw] max-w-[880px] select-none"
+          />
+        </h1>
+
+        <p className="rv-display mt-10 max-w-xl animate-rv-rise text-2xl italic text-ivory/90 [animation-delay:550ms] md:text-[32px]">
+          A new dawn of living.
+        </p>
+
+        <div className="mt-12 flex animate-rv-rise flex-col gap-3 [animation-delay:750ms] sm:flex-row sm:gap-4">
           <Link
-            to={toCatalog}
+            to={`${localePrefix}/catalog`}
             prefetch="intent"
-            className="
-              hero-explore-link relative z-20 mt-[clamp(34px,5vw,58px)]
-              bg-transparent border border-white text-white visited:text-white
-              px-12 py-3 rounded-none
-              text-xs md:text-sm font-bold tracking-[0.25em]
-              no-underline hover:no-underline focus:no-underline
-              hover:bg-white hover:text-[#0F2445]
-              transition-all duration-500 ease-in-out uppercase
-              animate-fade-in delay-200
-            "
-            style={{
-              animationDelay: '200ms',
-              textDecoration: 'none',
-              top: 'clamp(-58px, -6vh, -90px)',
-            }}
+            className="rv-btn rv-btn--light"
           >
-            EXPLORE
+            Discover the collection
           </Link>
+          <a href="#manifesto" className="rv-btn rv-btn--ghost-light">
+            The house
+          </a>
         </div>
       </div>
 
+      {/* indicador de scroll */}
+      <div
+        className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3"
+        style={{opacity: fade}}
+      >
+        <span className="rv-eyebrow !text-[9px] text-ivory/60">Scroll</span>
+        <span className="relative h-12 w-px overflow-hidden bg-ivory/20">
+          <span className="absolute inset-x-0 top-0 h-1/2 animate-[rv-scroll_2.2s_ease-in-out_infinite] bg-ivory" />
+        </span>
+      </div>
+
       <style>{`
-        .hero-explore-link,
-        .hero-explore-link:visited,
-        .hero-explore-link:hover,
-        .hero-explore-link:focus,
-        .hero-explore-link:active {
-          text-decoration: none !important;
-        }
-
-        .hero-explore-link,
-        .hero-explore-link:visited {
-          color: #ffffff !important;
-        }
-
-        .hero-explore-link:hover,
-        .hero-explore-link:focus-visible {
-          background-color: #ffffff !important;
-          color: #0f2445 !important;
-          border-color: #ffffff !important;
-        }
-
-        @media (max-width: 420px) {
-          .hero-explore-link {
-            padding-left: 2rem;
-            padding-right: 2rem;
-            top: -34px !important;
-          }
+        @keyframes rv-scroll {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(200%); }
         }
       `}</style>
     </section>

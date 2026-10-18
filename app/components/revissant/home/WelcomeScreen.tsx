@@ -6,84 +6,50 @@ type WelcomeScreenProps = {
 };
 
 /**
- * WelcomeScreen (REVISSANT) - versão com LOGO WHITE.
- * - Mostra o overlay
- * - Aguarda brevemente
- * - Faz fade-out curto
- * - Chama onFinished()
- *
- * SSR-safe: window só dentro de useEffect.
+ * WelcomeScreen — uma vez por sessão. Logotipo + linha que se desenha,
+ * depois a cortina sobe e revela o vídeo do hero.
  */
 export function WelcomeScreen({onFinished}: WelcomeScreenProps) {
-  const [isVisible, setIsVisible] = useState(true);
-  const displayMs = 1400;
-  const fadeMs = 500;
+  const [leaving, setLeaving] = useState(false);
+  const displayMs = 1500;
+  const exitMs = 900;
 
-  // Bloquear scroll enquanto estiver visível
-  useLockBodyScroll(true);
+  useLockBodyScroll(!leaving);
 
   useEffect(() => {
-    let finishTimer: number | undefined;
-
+    let finish: number | undefined;
     const timer = window.setTimeout(() => {
-      setIsVisible(false);
-
-      // esperar o fade-out antes de finalizar
-      finishTimer = window.setTimeout(() => {
-        onFinished();
-      }, fadeMs);
+      setLeaving(true);
+      finish = window.setTimeout(onFinished, exitMs);
     }, displayMs);
-
     return () => {
       window.clearTimeout(timer);
-      if (finishTimer) window.clearTimeout(finishTimer);
+      if (finish) window.clearTimeout(finish);
     };
   }, [onFinished]);
 
   return (
     <div
-      className={[
-        'fixed inset-0 z-[200] flex items-center justify-center',
-        'transition-opacity duration-500 ease-in-out',
-        isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none',
-      ].join(' ')}
-      style={{backgroundColor: '#0F2445'}}
+      className={`fixed inset-0 z-[200] flex items-center justify-center bg-ink-deep transition-transform duration-[900ms] ease-[cubic-bezier(0.7,0,0.2,1)] ${
+        leaving ? '-translate-y-full' : 'translate-y-0'
+      }`}
+      aria-hidden="true"
     >
-      <div className="text-center relative flex flex-col items-center">
-        {/* Logo (mantemos o logotipo) */}
+      <div className="flex flex-col items-center px-8">
         <img
-          src="/logowhite.png"
-          alt="REVISSANT"
-          className="w-[430px] sm:w-[560px] md:w-[700px] max-w-[92vw] h-auto select-none animate-fade-in"
-          style={{marginTop: 'clamp(4px, 0.8vw, 10px)'}}
+          src="/brand/revissant-white.png"
+          alt=""
           draggable={false}
+          className="w-[72vw] max-w-[520px] animate-rv-rise select-none"
         />
-
-        {/* Bloco linha + frase com offset explícito para evitar conflito de utilitários */}
-        <div
-          className="flex flex-col items-center"
-          style={{transform: 'translateY(clamp(-152px, -19vw, -230px))'}}
-        >
-          {/* Divider Line Animation */}
-          <div className="h-px bg-blue-200/50 w-0 mx-auto animate-[width_800ms_ease-out_forwards_200ms] mb-6" />
-
-          {/* Welcome Text Animation */}
-          <p className="m-0 text-blue-100 font-sans text-xs md:text-sm tracking-[0.4em] uppercase opacity-0 animate-[fadeIn_600ms_ease-out_forwards_550ms]">
-            Welcome to the new standard
-          </p>
-        </div>
+        <span className="mt-8 block h-px w-0 animate-[rv-line_900ms_ease-out_300ms_forwards] bg-sand/70" />
+        <p className="rv-eyebrow mt-6 animate-rv-rise text-ivory/70 [animation-delay:500ms]">
+          Welcome to the new standard
+        </p>
       </div>
 
-      {/* CSS local para animar sem mexer em estilos globais */}
       <style>{`
-        @keyframes width {
-          from { width: 0; }
-          to { width: 100px; }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes rv-line { from { width: 0 } to { width: 96px } }
       `}</style>
     </div>
   );
