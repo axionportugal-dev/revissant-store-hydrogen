@@ -45,7 +45,7 @@ export function RevissantHeader({cart}: Props) {
   return (
     <header
       className={[
-        'fixed inset-x-0 top-0 z-[60] transition-[background-color,color,box-shadow,backdrop-filter] duration-500',
+        'rv-intro-header fixed inset-x-0 top-0 z-[60] transition-[background-color,color,box-shadow,backdrop-filter,opacity] duration-500',
         solid
           ? 'bg-ivory/90 text-ink backdrop-blur-md shadow-[0_1px_0_rgba(15,36,69,0.08)]'
           : 'bg-transparent text-white',

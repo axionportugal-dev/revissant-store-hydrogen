@@ -6,6 +6,9 @@ import {EDITORIAL} from '~/components/revissant/concept/catalog';
 /**
  * Hero — vídeo "A New Dawn of Living" (AI Studio) em ecrã inteiro,
  * com o logotipo branco por cima. Parallax leve no scroll.
+ *
+ * O conteúdo usa `rv-intro-gated` / `rv-intro-logo`: fica escondido até a
+ * WelcomeScreen aterrar o logotipo em [data-hero-logo] (ver tailwind.css).
  */
 export function Hero() {
   const {locale} = useParams();
@@ -57,26 +60,39 @@ export function Hero() {
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{opacity: fade, transform: `translateY(${scrollY * -0.12}px)`}}
       >
-        <p className="rv-eyebrow animate-rv-rise text-sand [animation-delay:200ms]">
+        <p
+          className="rv-eyebrow rv-intro-gated text-sand"
+          style={{'--rv-delay': '250ms'} as React.CSSProperties}
+        >
           Maison of objects · Est. Portugal
         </p>
 
-        <h1 className="mt-8 w-full max-w-[880px] animate-rv-rise [animation-delay:350ms]">
+        <h1
+          className="rv-intro-logo mt-8 w-full max-w-[880px]"
+          style={{'--rv-delay': '350ms'} as React.CSSProperties}
+        >
           <img
             src="/brand/revissant-white.png"
             alt="REVISSANT"
             width={1580}
             height={190}
             draggable={false}
+            data-hero-logo
             className="mx-auto h-auto w-[86vw] max-w-[880px] select-none"
           />
         </h1>
 
-        <p className="rv-display mt-10 max-w-xl animate-rv-rise text-2xl italic text-ivory/90 [animation-delay:550ms] md:text-[32px]">
+        <p
+          className="rv-display rv-intro-gated mt-10 max-w-xl text-2xl italic text-ivory/90 md:text-[32px]"
+          style={{'--rv-delay': '450ms'} as React.CSSProperties}
+        >
           A new dawn of living.
         </p>
 
-        <div className="mt-12 flex animate-rv-rise flex-col gap-3 [animation-delay:750ms] sm:flex-row sm:gap-4">
+        <div
+          className="rv-intro-gated mt-12 flex flex-col gap-3 sm:flex-row sm:gap-4"
+          style={{'--rv-delay': '650ms'} as React.CSSProperties}
+        >
           <Link
             to={`${localePrefix}/catalog`}
             prefetch="intent"
@@ -92,13 +108,18 @@ export function Hero() {
 
       {/* indicador de scroll */}
       <div
-        className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3"
+        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2"
         style={{opacity: fade}}
       >
-        <span className="rv-eyebrow !text-[9px] text-ivory/60">Scroll</span>
-        <span className="relative h-12 w-px overflow-hidden bg-ivory/20">
-          <span className="absolute inset-x-0 top-0 h-1/2 animate-[rv-scroll_2.2s_ease-in-out_infinite] bg-ivory" />
-        </span>
+        <div
+          className="rv-intro-gated flex flex-col items-center gap-3"
+          style={{'--rv-delay': '900ms'} as React.CSSProperties}
+        >
+          <span className="rv-eyebrow !text-[9px] text-ivory/60">Scroll</span>
+          <span className="relative h-12 w-px overflow-hidden bg-ivory/20">
+            <span className="absolute inset-x-0 top-0 h-1/2 animate-[rv-scroll_2.2s_ease-in-out_infinite] bg-ivory" />
+          </span>
+        </div>
       </div>
 
       <style>{`

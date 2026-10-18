@@ -1,5 +1,6 @@
 import {Link} from 'react-router';
-import {useId} from 'react';
+import {useEffect, useId} from 'react';
+import {appBoot} from '~/components/revissant/utils/appBoot';
 import type {ReactNode} from 'react';
 
 import type {
@@ -40,6 +41,10 @@ export function PageLayout({
   isLoggedIn,
   publicStoreDomain,
 }: PageLayoutProps) {
+  useEffect(() => {
+    appBoot.done = true;
+  }, []);
+
   return (
     <Aside.Provider>
       {/* drawer core (search) mantém-se fora do scope Revissant */}
@@ -105,7 +110,8 @@ function SearchAside() {
           {({items, total, term, state, closeSearch}) => {
             const {articles, collections, pages, products, queries} = items;
 
-            if (state === 'loading' && term.current) return <div>Loading...</div>;
+            if (state === 'loading' && term.current)
+              return <div>Loading...</div>;
             if (!total) return <SearchResultsPredictive.Empty term={term} />;
 
             return (

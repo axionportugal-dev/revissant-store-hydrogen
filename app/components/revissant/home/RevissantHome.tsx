@@ -1,5 +1,6 @@
 // app/components/revissant/home/RevissantHome.tsx
 import {useEffect, useState} from 'react';
+import {appBoot} from '~/components/revissant/utils/appBoot';
 import {WelcomeScreen} from './WelcomeScreen';
 import {Hero} from './Hero';
 import {Marquee} from './Marquee';
@@ -28,35 +29,20 @@ export type BestSellerProduct = {
   } | null;
 };
 
-const WELCOME_SESSION_KEY = 'revissant:welcome-seen';
-
 export function RevissantHome() {
-  const [shouldShowWelcome, setShouldShowWelcome] = useState(false);
+  // O intro só toca no carregamento inicial do documento; numa navegação
+  // client-side para a home o hero entra diretamente.
+  const [isDocumentLoad] = useState(() => !appBoot.done);
 
   useEffect(() => {
-    try {
-      setShouldShowWelcome(
-        window.sessionStorage.getItem(WELCOME_SESSION_KEY) !== 'true',
-      );
-    } catch {
-      setShouldShowWelcome(false);
+    if (!isDocumentLoad) {
+      document.documentElement.setAttribute('data-intro-seen', 'returning');
     }
-  }, []);
-
-  function handleWelcomeFinished() {
-    try {
-      window.sessionStorage.setItem(WELCOME_SESSION_KEY, 'true');
-    } catch {
-      // If storage is unavailable, still unblock the storefront for this render.
-    }
-    setShouldShowWelcome(false);
-  }
+  }, [isDocumentLoad]);
 
   return (
     <div className="flex flex-col bg-ivory">
-      {shouldShowWelcome ? (
-        <WelcomeScreen onFinished={handleWelcomeFinished} />
-      ) : null}
+      {isDocumentLoad ? <WelcomeScreen /> : null}
 
       <Hero />
       <Marquee />

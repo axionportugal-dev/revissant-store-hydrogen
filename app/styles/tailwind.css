@@ -265,3 +265,48 @@ body {
     white-space: pre-wrap;
   }
 }
+
+/* =========================
+   Intro (WelcomeScreen → hero)
+   <html data-intro-seen> é definido por um script inline antes do paint
+   ("returning") ou pela WelcomeScreen quando o logotipo aterra ("landed").
+   ========================= */
+html:not([data-intro-seen]) .rv-intro-gated,
+html:not([data-intro-seen]) .rv-intro-logo {
+  opacity: 0;
+  /* rede de segurança: se o JS nunca correr, mostra o conteúdo na mesma */
+  animation: rv-fade 600ms ease 9s forwards;
+}
+
+html[data-intro-seen] .rv-intro-gated,
+html[data-intro-seen='returning'] .rv-intro-logo {
+  animation: rv-rise 1000ms cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* só esconde o header enquanto o overlay do intro existe (home) */
+html:not([data-intro-seen]):has(.rv-intro-overlay) .rv-intro-header {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-intro-seen] .rv-intro-overlay {
+  display: none;
+}
+
+.rv-intro-overlay {
+  animation: rv-intro-failsafe 0s linear 10s forwards;
+}
+
+@keyframes rv-intro-failsafe {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro-seen] .rv-intro-gated,
+  html[data-intro-seen='returning'] .rv-intro-logo {
+    animation: none;
+  }
+}
