@@ -4,3 +4,309 @@
  */
 
 @import 'tailwindcss';
+
+/* =========================
+   Revissant tokens (AI Studio)
+   ========================= */
+@theme {
+  --color-revissant-dark: #0f2445;
+  --color-revissant-light: #f8f9fa;
+  --color-revissant-accent: #c4a484;
+  --color-revissant-grey: #9ca3af;
+
+  /* Concept palette (idea/concept) — navy do logotipo + neutros quentes */
+  --color-ink: #0f2445;
+  --color-ink-deep: #0a1830;
+  --color-ivory: #f7f4ee;
+  --color-stone: #ece6dc;
+  --color-sand: #d8ccba;
+  --color-bronze: #9c7f55;
+  --color-muted: #6e6a63;
+
+  --font-serif: 'Cormorant Garamond', 'Playfair Display', serif;
+  --font-sans: 'Jost', 'Lato', sans-serif;
+
+  --animate-rv-rise: rv-rise 900ms cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  --animate-rv-fade: rv-fade 1200ms ease-out both;
+  --animate-rv-marquee: rv-marquee 40s linear infinite;
+
+  @keyframes rv-rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes rv-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes rv-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+/* O site é sempre claro: evita fundo escuro do browser em dark mode */
+html {
+  color-scheme: light;
+  background: var(--color-ivory);
+}
+
+body {
+  background: var(--color-ivory);
+}
+
+@layer components {
+  .rv-eyebrow {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+  }
+
+  .rv-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.02;
+  }
+
+  .rv-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 17px 34px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    background: var(--color-ink);
+    color: var(--color-ivory);
+    border: 1px solid var(--color-ink);
+    transition:
+      background-color 400ms ease,
+      color 400ms ease,
+      border-color 400ms ease;
+  }
+  .rv-btn:hover {
+    background: transparent;
+    color: var(--color-ink);
+  }
+  .rv-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .rv-btn--ghost-light {
+    background: transparent;
+    color: #fff;
+    border-color: rgb(255 255 255 / 0.7);
+  }
+  .rv-btn--ghost-light:hover {
+    background: #fff;
+    color: var(--color-ink);
+    border-color: #fff;
+  }
+
+  .rv-btn--light {
+    background: #fff;
+    color: var(--color-ink);
+    border-color: #fff;
+  }
+  .rv-btn--light:hover {
+    background: transparent;
+    color: #fff;
+  }
+
+  .rv-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 4px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+  .rv-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: currentColor;
+    transform-origin: left;
+    transition: transform 500ms cubic-bezier(0.2, 0.7, 0.1, 1);
+  }
+  .rv-link:hover::after {
+    transform: scaleX(0.35);
+  }
+
+  .rv-container {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: 20px;
+  }
+  @media (min-width: 768px) {
+    .rv-container {
+      padding-inline: 48px;
+    }
+  }
+
+  /* Revela secções ao entrar no viewport (ver useReveal) */
+  .rv-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 1000ms ease,
+      transform 1100ms cubic-bezier(0.2, 0.7, 0.1, 1);
+  }
+  .rv-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rv-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+}
+
+/* =========================
+   Revissant scoped base
+   (não mexe no core Hydrogen)
+   ========================= */
+@layer base {
+  /* Base typography + color (AI Studio body) */
+  .revissant {
+    font-family: var(--font-sans);
+    color: var(--color-revissant-dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Zerar margens/padding que o reset do Hydrogen mete em headings e p */
+  .revissant :where(h1, h2, h3, h4, h5, h6, p) {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Listas do reset core já estão “clean”, mas garantimos dentro do Revissant */
+  .revissant :where(ul, ol) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .revissant :where(li) {
+    margin: 0;
+  }
+
+  /* Evitar o default do reset core em forms/inputs dentro do Revissant */
+  .revissant :where(form) {
+    max-width: none;
+  }
+
+  .revissant :where(input) {
+    margin: 0;
+  }
+
+  /* Preflight mínimo para buttons (evita espaçamentos estranhos) */
+  .revissant :where(button) {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+  }
+
+  .revissant :where(button:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  /* Links sem sublinhado por defeito (AI Studio) */
+  .revissant :where(a) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .revissant :where(a:hover) {
+    text-decoration: none;
+  }
+
+  /* Ajustes leves para elementos de conteúdo */
+  .revissant :where(hr) {
+    border: 0;
+  }
+
+  .revissant :where(pre) {
+    white-space: pre-wrap;
+  }
+}
+
+/* =========================
+   Intro (WelcomeScreen → hero)
+   <html data-intro-seen> é definido por um script inline antes do paint
+   ("returning") ou pela WelcomeScreen quando o logotipo aterra ("landed").
+   ========================= */
+html:not([data-intro-seen]) .rv-intro-gated,
+html:not([data-intro-seen]) .rv-intro-logo {
+  opacity: 0;
+  /* rede de segurança: se o JS nunca correr, mostra o conteúdo na mesma */
+  animation: rv-fade 600ms ease 9s forwards;
+}
+
+html[data-intro-seen] .rv-intro-gated,
+html[data-intro-seen='returning'] .rv-intro-logo {
+  animation: rv-rise 1000ms cubic-bezier(0.2, 0.7, 0.1, 1) both;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* só esconde o header enquanto o overlay do intro existe (home) */
+html:not([data-intro-seen]):has(.rv-intro-overlay) .rv-intro-header {
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-intro-seen] .rv-intro-overlay {
+  display: none;
+}
+
+.rv-intro-overlay {
+  animation: rv-intro-failsafe 0s linear 10s forwards;
+}
+
+@keyframes rv-intro-failsafe {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-intro-seen] .rv-intro-gated,
+  html[data-intro-seen='returning'] .rv-intro-logo {
+    animation: none;
+  }
+}

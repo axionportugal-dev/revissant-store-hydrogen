@@ -1,0 +1,1 @@
+export {RevissantFAQPage} from './RevissantFAQPage';

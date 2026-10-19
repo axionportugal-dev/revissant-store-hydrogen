@@ -17,6 +17,7 @@ import resetStyles from '~/styles/reset.css?url';
 import appStyles from '~/styles/app.css?url';
 import tailwindCss from './styles/tailwind.css?url';
 import {PageLayout} from './components/PageLayout';
+import type {HeaderQuery} from 'storefrontapi.generated';
 
 export type RootLoader = typeof loader;
 
@@ -62,6 +63,19 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
+    {
+      rel: 'preconnect',
+      href: 'https://fonts.googleapis.com',
+    },
+    {
+      rel: 'preconnect',
+      href: 'https://fonts.gstatic.com',
+      crossOrigin: 'anonymous',
+    },
+    {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap',
+    },
     {rel: 'icon', type: 'image/svg+xml', href: favicon},
   ];
 }
@@ -94,6 +108,17 @@ export async function loader(args: Route.LoaderArgs) {
   };
 }
 
+const FALLBACK_HEADER = {
+  shop: {
+    id: 'gid://shopify/Shop/fallback',
+    name: 'REVISSANT',
+    description: null,
+    primaryDomain: {url: ''},
+    brand: null,
+  },
+  menu: null,
+} as unknown as HeaderQuery;
+
 /**
  * Load data necessary for rendering content above the fold. This is the critical data
  * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
@@ -102,12 +127,19 @@ async function loadCriticalData({context}: Route.LoaderArgs) {
   const {storefront} = context;
 
   const [header] = await Promise.all([
-    storefront.query(HEADER_QUERY, {
-      cache: storefront.CacheLong(),
-      variables: {
-        headerMenuHandle: 'main-menu', // Adjust to your header menu handle
-      },
-    }),
+    storefront
+      .query(HEADER_QUERY, {
+        cache: storefront.CacheLong(),
+        variables: {
+          headerMenuHandle: 'main-menu', // Adjust to your header menu handle
+        },
+      })
+      .catch((error: Error) => {
+        // Se a Storefront API falhar (ex.: loja indisponível), a UI Revissant
+        // continua a renderizar com um header mínimo.
+        console.error(error);
+        return FALLBACK_HEADER;
+      }),
     // Add other queries here, so that they are loaded in parallel
   ]);
 
@@ -146,13 +178,14 @@ export function Layout({children}: {children?: React.ReactNode}) {
   const nonce = useNonce();
 
   return (
-    <html lang="en">
+    // data-intro-seen é definido por script antes da hidratação (ver WelcomeScreen)
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <link rel="stylesheet" href={tailwindCss}></link>
-        <link rel="stylesheet" href={resetStyles}></link>
-        <link rel="stylesheet" href={appStyles}></link>
+        <link rel="stylesheet" href={resetStyles} />
+        <link rel="stylesheet" href={tailwindCss} />
+        <link rel="stylesheet" href={appStyles} />
         <Meta />
         <Links />
       </head>

@@ -1,36 +1,54 @@
-import {redirect, useLoaderData} from 'react-router';
-import type {Route} from './+types/products.$handle';
+import {useLoaderData} from 'react-router';
+import type {Route} from './+types/($locale).products.$handle';
+import type {
+  FallbackProductsQuery,
+  ProductRecommendationsQuery,
+} from 'storefrontapi.generated';
+import {RevissantProductPage} from '~/components/revissant/product';
+import {ConceptProductPage} from '~/components/revissant/concept/ConceptProductPage';
+import {getConceptProduct} from '~/components/revissant/concept/catalog';
+
 import {
   getSelectedProductOptions,
   Analytics,
   useOptimisticVariant,
-  getProductOptions,
   getAdjacentAndFirstAvailableVariants,
   useSelectedOptionInUrlParam,
 } from '@shopify/hydrogen';
-import {ProductPrice} from '~/components/ProductPrice';
-import {ProductImage} from '~/components/ProductImage';
-import {ProductForm} from '~/components/ProductForm';
+
 import {redirectIfHandleIsLocalized} from '~/lib/redirect';
 
+type RecommendedProduct = NonNullable<
+  NonNullable<ProductRecommendationsQuery['productRecommendations']>[number]
+>;
+type FallbackProduct = FallbackProductsQuery['products']['nodes'][number];
+
 export const meta: Route.MetaFunction = ({data}) => {
+  const title = data?.concept?.title ?? data?.product?.title ?? '';
+  const handle = data?.concept?.handle ?? data?.product?.handle ?? '';
   return [
-    {title: `Hydrogen | ${data?.product.title ?? ''}`},
-    {
-      rel: 'canonical',
-      href: `/products/${data?.product.handle}`,
-    },
+    {title: `${title} | REVISSANT`},
+    {name: 'description', content: data?.concept?.description ?? ''},
+    {rel: 'canonical', href: `/products/${handle}`},
   ];
 };
 
 export async function loader(args: Route.LoaderArgs) {
-  // Start fetching non-critical data without blocking time to first byte
-  const deferredData = loadDeferredData(args);
+  const concept = getConceptProduct(args.params.handle ?? '');
 
-  // Await the critical data required to render initial state of the page
-  const criticalData = await loadCriticalData(args);
+  try {
+    // Start fetching non-critical data without blocking time to first byte
+    const deferredData = loadDeferredData(args);
 
-  return {...deferredData, ...criticalData};
+    // Await the critical data required to render initial state of the page
+    const criticalData = await loadCriticalData(args);
+
+    return {...deferredData, ...criticalData, concept: null};
+  } catch (error) {
+    // Produto de conceito (não existe na Shopify ou a loja está indisponível)
+    if (concept) return {product: null, recommendations: [], concept};
+    throw error;
+  }
 }
 
 /**
@@ -56,11 +74,56 @@ async function loadCriticalData({context, params, request}: Route.LoaderArgs) {
     throw new Response(null, {status: 404});
   }
 
+  // recommendations (You may also like) — Shopify first, fallback only if empty
+  const recoData = await storefront.query(RECOMMENDATIONS_QUERY, {
+    variables: {productId: product.id},
+  });
+
+  let recommendations = (recoData?.productRecommendations ?? []).filter(
+    Boolean,
+  ) as RecommendedProduct[];
+
+  // Fallback C: se não houver recomendações da Shopify ainda
+  if (recommendations.length === 0) {
+    const tags = (product.tags ?? []) as string[];
+    const catTag = tags.find((t) => t.startsWith('cat-')) ?? null;
+
+    // helpers para query segura
+    const escape = (v: string) => String(v).replaceAll('"', '\\"');
+    const q = (v: string) => `"${escape(v)}"`;
+
+    const fallbackQuery = catTag
+      ? `tag:${q(catTag)}`
+      : product.productType
+        ? `product_type:${q(product.productType)}`
+        : '';
+
+    if (fallbackQuery) {
+      const fbData = await storefront.query(FALLBACK_PRODUCTS_QUERY, {
+        variables: {first: 12, query: fallbackQuery},
+      });
+
+      const nodes: FallbackProduct[] = (fbData?.products?.nodes ?? []).filter(
+        (product): product is FallbackProduct => Boolean(product),
+      );
+
+      recommendations = nodes
+        .filter((candidate: FallbackProduct) => candidate.id !== product.id)
+        .slice(0, 4);
+    } else {
+      recommendations = [];
+    }
+  } else {
+    // se já há recomendações reais, corta para 4
+    recommendations = recommendations.slice(0, 4);
+  }
+
   // The API handle might be localized, so redirect to the localized handle
   redirectIfHandleIsLocalized(request, {handle, data: product});
 
   return {
     product,
+    recommendations,
   };
 }
 
@@ -77,49 +140,43 @@ function loadDeferredData({context, params}: Route.LoaderArgs) {
 }
 
 export default function Product() {
-  const {product} = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
 
-  // Optimistically selects a variant with given available variant information
+  if (data.concept) return <ConceptProductPage product={data.concept} />;
+  if (!data.product) return null;
+
+  return (
+    <ShopifyProduct
+      product={data.product}
+      recommendations={data.recommendations ?? []}
+    />
+  );
+}
+
+function ShopifyProduct({
+  product,
+  recommendations,
+}: {
+  product: NonNullable<Awaited<ReturnType<typeof loadCriticalData>>['product']>;
+  recommendations: Awaited<
+    ReturnType<typeof loadCriticalData>
+  >['recommendations'];
+}) {
   const selectedVariant = useOptimisticVariant(
     product.selectedOrFirstAvailableVariant,
     getAdjacentAndFirstAvailableVariants(product),
   );
 
-  // Sets the search param to the selected variant without navigation
-  // only when no search params are set in the url
   useSelectedOptionInUrlParam(selectedVariant.selectedOptions);
 
-  // Get the product options array
-  const productOptions = getProductOptions({
-    ...product,
-    selectedOrFirstAvailableVariant: selectedVariant,
-  });
-
-  const {title, descriptionHtml} = product;
-
   return (
-    <div className="product">
-      <ProductImage image={selectedVariant?.image} />
-      <div className="product-main">
-        <h1>{title}</h1>
-        <ProductPrice
-          price={selectedVariant?.price}
-          compareAtPrice={selectedVariant?.compareAtPrice}
-        />
-        <br />
-        <ProductForm
-          productOptions={productOptions}
-          selectedVariant={selectedVariant}
-        />
-        <br />
-        <br />
-        <p>
-          <strong>Description</strong>
-        </p>
-        <br />
-        <div dangerouslySetInnerHTML={{__html: descriptionHtml}} />
-        <br />
-      </div>
+    <>
+      <RevissantProductPage
+        product={product}
+        selectedVariant={selectedVariant}
+        recommendations={recommendations ?? []}
+      />
+
       <Analytics.ProductView
         data={{
           products: [
@@ -135,7 +192,7 @@ export default function Product() {
           ],
         }}
       />
-    </div>
+    </>
   );
 }
 
@@ -182,8 +239,21 @@ const PRODUCT_FRAGMENT = `#graphql
     title
     vendor
     handle
+    tags
     descriptionHtml
     description
+    productType
+    material: metafield(namespace: "custom", key: "material") {
+      value
+    }
+    images(first: 10) {
+      nodes {
+        url
+        altText
+        width
+        height
+      }
+    }
     encodedVariantExistence
     encodedVariantAvailability
     options {
@@ -229,4 +299,101 @@ const PRODUCT_QUERY = `#graphql
     }
   }
   ${PRODUCT_FRAGMENT}
+` as const;
+
+const RECOMMENDATIONS_QUERY = `#graphql
+  query ProductRecommendations(
+    $country: CountryCode
+    $language: LanguageCode
+    $productId: ID!
+  ) @inContext(country: $country, language: $language) {
+    productRecommendations(productId: $productId) {
+      id
+      title
+      handle
+      featuredImage {
+        url
+        altText
+      }
+      priceRange {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+      selectedOrFirstAvailableVariant {
+        id
+        availableForSale
+        title
+        price {
+          amount
+          currencyCode
+        }
+        image {
+          url
+          altText
+          width
+          height
+        }
+        product {
+          title
+          handle
+        }
+        selectedOptions {
+          name
+          value
+        }
+      }
+    }
+  }
+` as const;
+
+const FALLBACK_PRODUCTS_QUERY = `#graphql
+  query FallbackProducts(
+    $country: CountryCode
+    $language: LanguageCode
+    $first: Int!
+    $query: String!
+  ) @inContext(country: $country, language: $language) {
+    products(first: $first, query: $query) {
+      nodes {
+        id
+        title
+        handle
+        featuredImage {
+          url
+          altText
+        }
+        priceRange {
+          minVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+        selectedOrFirstAvailableVariant {
+          id
+          availableForSale
+          title
+          price {
+            amount
+            currencyCode
+          }
+          image {
+            url
+            altText
+            width
+            height
+          }
+          product {
+            title
+            handle
+          }
+          selectedOptions {
+            name
+            value
+          }
+        }
+      }
+    }
+  }
 ` as const;

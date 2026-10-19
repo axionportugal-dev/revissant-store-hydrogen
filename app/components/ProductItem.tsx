@@ -3,9 +3,12 @@ import {Image, Money} from '@shopify/hydrogen';
 import type {
   ProductItemFragment,
   CollectionItemFragment,
-  RecommendedProductFragment,
+  ProductRecommendationsQuery,
 } from 'storefrontapi.generated';
 import {useVariantUrl} from '~/lib/variants';
+
+type RecommendedProduct =
+  NonNullable<ProductRecommendationsQuery['productRecommendations']>[number];
 
 export function ProductItem({
   product,
@@ -14,7 +17,7 @@ export function ProductItem({
   product:
     | CollectionItemFragment
     | ProductItemFragment
-    | RecommendedProductFragment;
+    | RecommendedProduct;
   loading?: 'eager' | 'lazy';
 }) {
   const variantUrl = useVariantUrl(product.handle);

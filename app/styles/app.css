@@ -8,8 +8,444 @@
   --color-light: #fff;
 }
 
-img {
-  border-radius: 4px;
+.revissant-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  transition:
+    background-color 220ms ease,
+    box-shadow 220ms ease,
+    color 220ms ease;
+}
+
+.revissant-header__inner {
+  height: 78px;
+  padding: 0 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.revissant-header__left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.revissant-header__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.revissant-header__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  min-width: 0;
+}
+
+.revissant-header--transparent {
+  background: transparent;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.revissant-header--solid {
+  background: #ffffff;
+  color: #0b1f3e;
+  box-shadow: 0 1px 0 rgba(10, 20, 40, 0.08);
+}
+
+.revissant-header__icon-btn {
+  position: relative;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 6px;
+  cursor: pointer;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.revissant-header__icon-btn--square {
+  border-radius: 8px;
+}
+
+.revissant-header__icon-btn--round {
+  border-radius: 999px;
+}
+
+.revissant-header--transparent .revissant-header__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.revissant-header--solid .revissant-header__icon-btn:hover {
+  background: #f9fafb;
+}
+
+.revissant-header__currency {
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.revissant-header__center-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  transition: opacity 260ms ease, transform 260ms ease;
+  will-change: opacity, transform;
+}
+
+.revissant-header__center-logo--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+}
+
+.revissant-header__center-logo--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.revissant-header__logo-img {
+  height: 90px;
+  width: auto;
+  user-select: none;
+}
+
+.revissant-header__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #0b1f3e;
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .revissant-header__inner {
+    padding: 0 14px;
+    height: 70px;
+  }
+
+  .revissant-header__logo-img {
+    height: 20px;
+  }
+
+  .revissant-header__right {
+    gap: 6px;
+  }
+
+  .revissant-header__currency {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+  }
+
+  .revissant-header__icon-btn {
+    padding: 5px;
+  }
+}
+
+.revissant-mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.revissant-mobile-menu--open,
+.revissant-mobile-menu--closing {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.revissant-mobile-menu__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.revissant-mobile-menu--open .revissant-mobile-menu__backdrop {
+  animation: revissantMobileMenuBackdropIn 500ms ease both;
+}
+
+.revissant-mobile-menu--closing .revissant-mobile-menu__backdrop {
+  animation: revissantMobileMenuBackdropOut 500ms ease both;
+}
+
+.revissant-mobile-menu__drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateX(-100%);
+  background: rgba(15, 36, 69, 0.2);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  color: #ffffff;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.revissant-mobile-menu--open .revissant-mobile-menu__drawer {
+  animation: revissantMobileMenuDrawerIn 500ms cubic-bezier(0.16, 1, 0.3, 1)
+    both;
+}
+
+.revissant-mobile-menu--closing .revissant-mobile-menu__drawer {
+  animation: revissantMobileMenuDrawerOut 500ms cubic-bezier(0.16, 1, 0.3, 1)
+    both;
+}
+
+.revissant-mobile-menu__close-btn {
+  position: absolute;
+  top: 32px;
+  left: 32px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 200ms ease;
+}
+
+.revissant-mobile-menu__close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.revissant-mobile-menu__close-icon {
+  display: block;
+  transition: transform 300ms ease;
+  transform-origin: 50% 50%;
+}
+
+.revissant-mobile-menu__close-btn:hover .revissant-mobile-menu__close-icon {
+  transform: rotate(90deg);
+}
+
+.revissant-mobile-menu__vertical {
+  display: none;
+  position: absolute;
+  bottom: 48px;
+  right: 40px;
+  opacity: 0.3;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  font-weight: 700;
+}
+
+.revissant-mobile-menu__nav {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  padding-top: 112px;
+  padding-bottom: 32px;
+  padding-left: 48px;
+  padding-right: 48px;
+  gap: 40px;
+}
+
+.revissant-mobile-menu__new-row {
+  display: flex;
+  align-items: center;
+}
+
+.revissant-mobile-menu__new {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #5c8dff;
+}
+
+.revissant-mobile-menu__links {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.revissant-mobile-menu__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 100%;
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  color: #ffffff;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 220ms ease;
+}
+
+.revissant-mobile-menu__link:hover,
+.revissant-mobile-menu__link:focus,
+.revissant-mobile-menu__link:active,
+.revissant-mobile-menu__link:visited {
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+}
+
+.revissant-mobile-menu__link:hover {
+  color: #5c8dff;
+}
+
+.revissant-mobile-menu__link-text {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.revissant-mobile-menu__arrow {
+  font-size: 16px;
+  color: #5c8dff;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.revissant-mobile-menu__link:hover .revissant-mobile-menu__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.revissant-mobile-menu__depth {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  mix-blend-mode: overlay;
+}
+
+@keyframes revissantMobileMenuBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes revissantMobileMenuBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes revissantMobileMenuDrawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes revissantMobileMenuDrawerOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (min-width: 640px) {
+  .revissant-mobile-menu__drawer {
+    width: 450px;
+  }
+
+  .revissant-mobile-menu__vertical {
+    display: block;
+  }
+
+  .revissant-mobile-menu__nav {
+    padding-left: 96px;
+    padding-right: 96px;
+  }
+}
+
+@media (max-width: 360px) {
+  .revissant-header__inner {
+    padding: 0 14px;
+  }
+
+  .revissant-header__right {
+    gap: 6px;
+  }
+
+  .revissant-mobile-menu__nav {
+    padding-left: 36px;
+    padding-right: 28px;
+  }
+
+  .revissant-mobile-menu__new,
+  .revissant-mobile-menu__link {
+    font-size: 28px;
+  }
+
+  .revissant-mobile-menu__close-btn {
+    top: 26px;
+    left: 26px;
+  }
 }
 
 /*
@@ -17,125 +453,18 @@ img {
 * Non anchor links
 * --------------------------------------------------
 */
-.link:hover {
+.revissant .link:hover {
   text-decoration: underline;
   cursor: pointer;
 }
 
 /*
 * --------------------------------------------------
-* components/Aside
+* components/Aside (LEGACY)
 * --------------------------------------------------
+* Removido para evitar colisões com o Aside atual (Tailwind) e
+* com o MenuDrawer Revissant. Mantém o core mais previsível.
 */
-@media (max-width: 45em) {
-  html:has(.overlay.expanded) {
-    overflow: hidden;
-  }
-}
-
-aside {
-  background: var(--color-light);
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
-  height: 100vh;
-  width: min(var(--aside-width), 100vw);
-  position: fixed;
-  right: calc(-1 * var(--aside-width));
-  top: 0;
-  transition: transform 200ms ease-in-out;
-}
-
-aside header {
-  align-items: center;
-  border-bottom: 1px solid var(--color-dark);
-  display: flex;
-  height: var(--header-height);
-  justify-content: space-between;
-  padding: 0 20px;
-}
-
-aside header h3 {
-  margin: 0;
-}
-
-aside header .close {
-  font-weight: bold;
-  opacity: 0.8;
-  text-decoration: none;
-  transition: all 200ms;
-  width: 20px;
-}
-
-aside header .close:hover {
-  opacity: 1;
-}
-
-aside header h2 {
-  margin-bottom: 0.6rem;
-  margin-top: 0;
-}
-
-aside main {
-  margin: 1rem;
-}
-
-aside p {
-  margin: 0 0 0.25rem;
-}
-
-aside p:last-child {
-  margin: 0;
-}
-
-aside li {
-  margin-bottom: 0.125rem;
-}
-
-.overlay {
-  background: rgba(0, 0, 0, 0.2);
-  bottom: 0;
-  left: 0;
-  opacity: 0;
-  pointer-events: none;
-  position: fixed;
-  right: 0;
-  top: 0;
-  transition: opacity 400ms ease-in-out;
-  transition: opacity 400ms;
-  visibility: hidden;
-  z-index: 10;
-}
-
-.overlay .close-outside {
-  background: transparent;
-  border: none;
-  color: transparent;
-  height: 100%;
-  left: 0;
-  position: absolute;
-  top: 0;
-  width: calc(100% - var(--aside-width));
-}
-
-.overlay .light {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.overlay .cancel {
-  cursor: default;
-  height: 100%;
-  position: absolute;
-  width: 100%;
-}
-
-.overlay.expanded {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-}
-/* reveal aside */
-.overlay.expanded aside {
-  transform: translateX(calc(var(--aside-width) * -1));
-}
 
 button.reset {
   border: 0;
@@ -572,3 +901,72 @@ button.reset:hover:not(:has(> *)) {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+/* =========================
+   Revissant utilities
+   ========================= */
+
+/* Fade-in usado nos modais e no check do email */
+@keyframes revissantFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: revissantFadeIn 0.25s ease-out both;
+}
+
+@keyframes revissantSubtlePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.85;
+  }
+}
+
+.animate-subtle-pulse {
+  animation: revissantSubtlePulse 6s ease-in-out infinite;
+}
+
+/* Aplicar delay de animação sem colidir com a utility global `delay-700`. */
+.animate-subtle-pulse.delay-700 {
+  animation-delay: 700ms;
+}
+
+/*
+  Offset comum para páginas com header fixo (catalog/faq),
+  mantendo o spacing interno de cada página e evitando overlap no topo.
+*/
+.revissant-page-offset {
+  margin-top: calc(78px - 48px);
+}
+
+@media (max-width: 640px) {
+  .revissant-page-offset {
+    margin-top: calc(70px - 48px);
+  }
+}
+
+/* Remove scrollbar (igual ao AI Studio) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/*
+  NÃO metas aqui CSS tipo ".overlay-mobile.expanded ..." a estilizar <Aside>.
+  O menu mobile usa classes globais revissant-mobile-menu* porque o estado
+  fechado/off-canvas precisa de CSS carregado logo no document request.
+*/
