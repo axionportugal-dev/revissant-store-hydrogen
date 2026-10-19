@@ -56,19 +56,20 @@ export function Hero() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,24,48,0.55)_100%)]" />
       <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-deep/70 to-transparent" />
 
+      {/* 3 linhas: [1fr | logotipo | 1fr] → o logotipo fica no centro vertical exato do ecrã */}
       <div
-        className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
+        className="relative z-10 grid h-full grid-rows-[1fr_auto_1fr] justify-items-center px-6 text-center"
         style={{opacity: fade, transform: `translateY(${scrollY * -0.12}px)`}}
       >
         <p
-          className="rv-eyebrow rv-intro-gated text-sand"
+          className="rv-eyebrow rv-intro-gated self-end text-sand"
           style={{'--rv-delay': '250ms'} as React.CSSProperties}
         >
           Maison of objects · Est. Portugal
         </p>
 
         <h1
-          className="rv-intro-logo mt-8 w-full max-w-[880px]"
+          className="rv-intro-logo my-7 w-full max-w-[880px] md:my-9"
           style={{'--rv-delay': '350ms'} as React.CSSProperties}
         >
           <img
@@ -82,27 +83,29 @@ export function Hero() {
           />
         </h1>
 
-        <p
-          className="rv-display rv-intro-gated mt-10 max-w-xl text-2xl italic text-ivory/90 md:text-[32px]"
-          style={{'--rv-delay': '450ms'} as React.CSSProperties}
-        >
-          A new dawn of living.
-        </p>
-
-        <div
-          className="rv-intro-gated mt-12 flex flex-col gap-3 sm:flex-row sm:gap-4"
-          style={{'--rv-delay': '650ms'} as React.CSSProperties}
-        >
-          <Link
-            to={`${localePrefix}/catalog`}
-            prefetch="intent"
-            className="rv-btn rv-btn--light"
+        <div className="flex flex-col items-center self-start">
+          <p
+            className="rv-display rv-intro-gated max-w-xl text-2xl italic text-ivory/90 md:text-[32px]"
+            style={{'--rv-delay': '450ms'} as React.CSSProperties}
           >
-            Discover the collection
-          </Link>
-          <a href="#manifesto" className="rv-btn rv-btn--ghost-light">
-            The house
-          </a>
+            A new dawn of living.
+          </p>
+
+          <div
+            className="rv-intro-gated mt-10 flex flex-col gap-3 sm:flex-row sm:gap-4 md:mt-12"
+            style={{'--rv-delay': '650ms'} as React.CSSProperties}
+          >
+            <Link
+              to={`${localePrefix}/catalog`}
+              prefetch="intent"
+              className="rv-btn rv-btn--light"
+            >
+              Discover the collection
+            </Link>
+            <a href="#manifesto" className="rv-btn rv-btn--ghost-light">
+              The house
+            </a>
+          </div>
         </div>
       </div>
 
